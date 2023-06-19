@@ -3,11 +3,14 @@ package ovmf
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"log"
 	"os"
+	"strconv"
+	"strings"
 
 	"github.com/google/uuid"
 )
@@ -70,9 +73,69 @@ func (h *MetadataHeader) Verify() error {
 }
 
 type MetadataSection struct {
-	GPA            uint32
-	Size           uint32
+	// GPA is the Guest Physical Adress of the page. The GPA becomes part of the launch digest.
+	GPA  uint32
+	Size uint32
+	// SectionTypeInt is the Section Type of the described page. The type becomes part of the launch digest.
 	SectionTypeInt uint32
+}
+
+// MarshalJSON is a custom marshaller for MetadataSection. It converts the GPA and Size to hex strings.
+func (m *MetadataSection) MarshalJSON() ([]byte, error) {
+	return json.Marshal(map[string]interface{}{
+		"GPA":            fmt.Sprintf("0x%x", m.GPA),
+		"Size":           fmt.Sprintf("0x%x", m.Size),
+		"SectionTypeInt": m.SectionTypeInt,
+	})
+}
+
+// UnmarshalJSON is a custom unmarshaller for MetadataSection. It converts the GPA and Size from hex strings.
+func (m *MetadataSection) UnmarshalJSON(data []byte) error {
+	var tmp map[string]any
+	err := json.Unmarshal(data, &tmp)
+	if err != nil {
+		return err
+	}
+
+	// For some reason json unmarshals SectionTypeInt to a float64.
+	sectionType, ok := tmp["SectionTypeInt"].(float64)
+	if !ok {
+		return errors.New("missing SectionTypeInt")
+	}
+	m.SectionTypeInt = uint32(sectionType)
+
+	gpa, ok := tmp["GPA"].(string)
+	if !ok {
+		return errors.New("missing GPA")
+	}
+	gpa, found := strings.CutPrefix(gpa, "0x")
+	if !found {
+		return errors.New("missing 0x prefix from gpa")
+	}
+
+	size, ok := tmp["Size"].(string)
+	if !ok {
+		return errors.New("missing Size")
+	}
+	size, found = strings.CutPrefix(size, "0x")
+	if !found {
+		return errors.New("missing 0x prefix from size")
+	}
+
+	gpaInt, err := strconv.ParseInt(gpa, 16, 0)
+	if err != nil {
+		return fmt.Errorf("parsing GPA: %w", err)
+	}
+
+	sizeInt, err := strconv.ParseInt(size, 16, 0)
+	if err != nil {
+		return fmt.Errorf("parsing Size: %w", err)
+	}
+
+	m.GPA = uint32(gpaInt)
+	m.Size = uint32(sizeInt)
+
+	return nil
 }
 
 func NewMetadataSectionDesc(data []byte) (*MetadataSection, error) {
@@ -99,6 +162,72 @@ type OVMF struct {
 	data          []byte
 	table         map[string][]byte
 	metadataItems []MetadataSection
+}
+
+// APIObject replaces the OVMF binary when using an OVMF hash.
+// It contains the metadata items and the reset EIP that have been parsed from the binary before.
+type APIObject struct {
+	MetadataItems []MetadataSection
+	ResetEIP      uint32
+}
+
+func NewAPIObject(ovmf *OVMF) (*APIObject, error) {
+	resetEIP, err := ovmf.SevESResetEIP()
+	if err != nil {
+		return nil, fmt.Errorf("getting reset EIP: %w", err)
+	}
+
+	return &APIObject{
+		MetadataItems: ovmf.MetadataItems(),
+		ResetEIP:      resetEIP,
+	}, nil
+}
+
+// MarshalJSON is a custom marshaller for MetadataSection. It converts the GPA and Size to hex strings.
+func (m *APIObject) MarshalJSON() ([]byte, error) {
+	return json.Marshal(map[string]interface{}{
+		"MetadataItems": m.MetadataItems,
+		"ResetEIP":      fmt.Sprintf("0x%x", m.ResetEIP),
+	})
+}
+
+// UnmarshalJSON is a custom unmarshaller for MetadataSection. It converts the GPA and Size from hex strings.
+func (m *APIObject) UnmarshalJSON(data []byte) error {
+	var tmp map[string]json.RawMessage
+	err := json.Unmarshal(data, &tmp)
+	if err != nil {
+		return err
+	}
+
+	foo, ok := tmp["MetadataItems"]
+	if !ok {
+		return errors.New("missing MetadataItems")
+	}
+	if err := json.Unmarshal(foo, &m.MetadataItems); err != nil {
+		return err
+	}
+
+	resetEIP, ok := tmp["ResetEIP"]
+	if !ok {
+		return errors.New("missing ResetEIP")
+	}
+	var eip string
+	if err := json.Unmarshal(resetEIP, &eip); err != nil {
+		return err
+	}
+
+	eip, found := strings.CutPrefix(eip, "0x")
+	if !found {
+		return errors.New("missing 0x prefix from ResetEIP")
+	}
+	eipInt, err := strconv.ParseInt(eip, 16, 0)
+	if err != nil {
+		return fmt.Errorf("parsing ResetEIP: %w", err)
+	}
+
+	m.ResetEIP = uint32(eipInt)
+
+	return nil
 }
 
 // func New() *OVMF {
