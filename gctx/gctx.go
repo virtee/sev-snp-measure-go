@@ -65,23 +65,6 @@ func (g *GCTX) update(pageType byte, gpa uint64, contents []byte) error {
 	return nil
 }
 
-func (g *GCTX) updateNormalPages(startGpa uint64, data []byte) error {
-	if len(data)%4096 != 0 {
-		return errors.New("Invalid data length")
-	}
-	offset := 0
-	for offset < len(data) {
-		pageData := data[offset : offset+4096]
-		h := sha512.New384()
-		h.Write(pageData)
-		if err := g.update(0x01, startGpa+uint64(offset), h.Sum(nil)); err != nil {
-			return err
-		}
-		offset += 4096
-	}
-	return nil
-}
-
 func (g *GCTX) UpdateVmsaPage(data []byte) error {
 	if len(data) != 4096 {
 		return errors.New("invalid data length")
@@ -106,32 +89,10 @@ func (g *GCTX) UpdateZeroPages(gpa uint64, lengthBytes int) error {
 	return nil
 }
 
-func (g *GCTX) updateUnmeasuredPage(gpa uint64) error {
-	return g.update(0x04, gpa, bytes.Repeat([]byte{0x00}, LD_SIZE))
-}
-
 func (g *GCTX) UpdateSecretsPage(gpa uint64) error {
 	return g.update(0x05, gpa, bytes.Repeat([]byte{0x00}, LD_SIZE))
 }
 
 func (g *GCTX) UpdateCpuidPage(gpa uint64) error {
 	return g.update(0x06, gpa, bytes.Repeat([]byte{0x00}, LD_SIZE))
-}
-
-func le64(gpa uint64) []byte {
-	bytes := make([]byte, 8)
-	binary.LittleEndian.PutUint64(bytes, gpa)
-	return bytes
-}
-
-func le16(pageInfoLen int) []byte {
-	bytes := make([]byte, 2)
-	binary.LittleEndian.PutUint16(bytes, uint16(pageInfoLen))
-	return bytes
-}
-
-func le8(val int) []byte {
-	bytes := make([]byte, 1)
-	bytes[0] = byte(val)
-	return bytes
 }

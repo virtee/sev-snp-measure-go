@@ -32,7 +32,11 @@ func snpCalcLaunchDigests(ovmfPath string, vcpuCount int, ovmfHash []byte) ([]by
 		return nil, fmt.Errorf("creating VMSA: %w", err)
 	}
 
-	for _, desc := range vmsaObj.Pages(vcpuCount) {
+	pages, err := vmsaObj.Pages(vcpuCount)
+	if err != nil {
+		return nil, fmt.Errorf("getting VMSA pages: %w", err)
+	}
+	for _, desc := range pages {
 		err := guestCtx.UpdateVmsaPage(desc)
 		if err != nil {
 			return nil, fmt.Errorf("updating VMSA page: %w", err)

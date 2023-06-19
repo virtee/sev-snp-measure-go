@@ -5,7 +5,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"os"
 
@@ -96,10 +96,9 @@ func (o *MetadataSection) SectionType() (SectionType, error) {
 }
 
 type OVMF struct {
-	data           []byte
-	table          map[string][]byte
-	metadataItems  []MetadataSection
-	footerTableLen int
+	data          []byte
+	table         map[string][]byte
+	metadataItems []MetadataSection
 }
 
 // func New() *OVMF {
@@ -120,7 +119,7 @@ func New(filename string) (*OVMF, error) {
 	}
 	defer file.Close()
 
-	data, err := ioutil.ReadAll(file)
+	data, err := io.ReadAll(file)
 	if err != nil {
 		return nil, err
 	}
@@ -195,9 +194,6 @@ func (o *OVMF) parseFooterTable() error {
 	}
 
 	tableSize := footer.Size - uint16(entryHeaderSize)
-	if tableSize < 0 {
-		return fmt.Errorf("invalid table size: %d", tableSize)
-	}
 
 	tableBytes := o.data[footerTableStartIdx-int(tableSize) : footerTableStartIdx]
 

@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	"fmt"
 
 	"edgelesssys/sevsnpmeasure/vmmtypes"
 )
@@ -201,18 +202,22 @@ func New(apEip uint32, vcpuSig uint64, vmmType vmmtypes.VMMType) (VMSA, error) {
 	return VMSA{BspSaveArea: bspSaveArea, ApSaveArea: apSaveArea}, nil
 }
 
-func (v VMSA) Pages(vcpus int) [][]byte {
+func (v VMSA) Pages(vcpus int) ([][]byte, error) {
 	var result [][]byte
 	for i := 0; i < vcpus; i++ {
 		if i == 0 {
 			bspSavedAreaRaw := bytes.NewBuffer([]byte{})
-			binary.Write(bspSavedAreaRaw, binary.LittleEndian, &v.BspSaveArea)
+			if err := binary.Write(bspSavedAreaRaw, binary.LittleEndian, &v.BspSaveArea); err != nil {
+				return nil, fmt.Errorf("writing bsp saved area: %w", err)
+			}
 			result = append(result, bspSavedAreaRaw.Bytes())
 		} else {
 			apSavedAreaRaw := bytes.NewBuffer([]byte{})
-			binary.Write(apSavedAreaRaw, binary.LittleEndian, &v.ApSaveArea)
+			if err := binary.Write(apSavedAreaRaw, binary.LittleEndian, &v.ApSaveArea); err != nil {
+				return nil, fmt.Errorf("writing ap saved area: %w", err)
+			}
 			result = append(result, apSavedAreaRaw.Bytes())
 		}
 	}
-	return result
+	return result, nil
 }
