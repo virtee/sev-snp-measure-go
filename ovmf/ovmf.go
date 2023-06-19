@@ -171,7 +171,7 @@ type APIObject struct {
 	ResetEIP      uint32
 }
 
-func NewAPIObject(ovmf *OVMF) (*APIObject, error) {
+func NewAPIObject(ovmf OVMF) (*APIObject, error) {
 	resetEIP, err := ovmf.SevESResetEIP()
 	if err != nil {
 		return nil, fmt.Errorf("getting reset EIP: %w", err)
@@ -230,12 +230,22 @@ func (m *APIObject) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// func New() *OVMF {
-// 	return &OVMF{}
-// }
+// NewFromAPIObject creates an OVMF object from an APIObject.
+// This OVMF object can only be used in conjunction with a OVMF Hash, as the data property is not
+func NewFromAPIObject(apiObject APIObject) (OVMF, error) {
+	ovmf := OVMF{}
 
-func New(filename string) (*OVMF, error) {
-	ovmf := &OVMF{}
+	ovmf.metadataItems = apiObject.MetadataItems
+
+	resetEIP := make([]byte, 4)
+	binary.LittleEndian.PutUint32(resetEIP, apiObject.ResetEIP)
+	ovmf.table[SEV_ES_RESET_BLOCK_GUID] = resetEIP
+
+	return ovmf, nil
+}
+
+func New(filename string) (OVMF, error) {
+	ovmf := OVMF{}
 
 	path, err := os.Getwd()
 	if err != nil {
@@ -244,25 +254,25 @@ func New(filename string) (*OVMF, error) {
 	fmt.Println(path)
 	file, err := os.Open(filename)
 	if err != nil {
-		return nil, err
+		return OVMF{}, err
 	}
 	defer file.Close()
 
 	data, err := io.ReadAll(file)
 	if err != nil {
-		return nil, err
+		return OVMF{}, err
 	}
 
 	ovmf.data = data
 
 	err = ovmf.parseFooterTable()
 	if err != nil {
-		return nil, fmt.Errorf("parsing footer table: %w", err)
+		return OVMF{}, fmt.Errorf("parsing footer table: %w", err)
 	}
 
 	err = ovmf.parseSevMetadata()
 	if err != nil {
-		return nil, fmt.Errorf("parsing SEV metadata: %w", err)
+		return OVMF{}, fmt.Errorf("parsing SEV metadata: %w", err)
 	}
 
 	return ovmf, nil

@@ -10,19 +10,12 @@ import (
 	"edgelesssys/sevsnpmeasure/vmsa"
 )
 
-func snpCalcLaunchDigests(ovmfPath string, vcpuCount int, ovmfHash []byte) ([]byte, error) {
+// launchDigest calculates the launch digest from metadata and ovmfHash for a SNP guest.
+func launchDigest(metadata []ovmf.MetadataSection, resetEIP uint32, vcpuCount int, ovmfHash []byte) ([]byte, error) {
 	guestCtx := gctx.New(ovmfHash)
-	ovmfObj, err := ovmf.New(ovmfPath)
-	if err != nil {
-		return nil, fmt.Errorf("creating OVMF: %w", err)
-	}
-	if err := snpUpdateMetadataPages(guestCtx, ovmfObj, vmmtypes.EC2); err != nil {
-		return nil, fmt.Errorf("updating metadata pages: %w", err)
-	}
 
-	resetEIP, err := ovmfObj.SevESResetEIP()
-	if err != nil {
-		return nil, fmt.Errorf("getting reset EIP: %w", err)
+	if err := snpUpdateMetadataPages(guestCtx, metadata, vmmtypes.EC2); err != nil {
+		return nil, fmt.Errorf("updating metadata pages: %w", err)
 	}
 
 	// Add support for flags {vcpus_family, vcpu_sig, vcpu_type} here, if relevant.
@@ -45,8 +38,20 @@ func snpCalcLaunchDigests(ovmfPath string, vcpuCount int, ovmfHash []byte) ([]by
 	return guestCtx.LD(), nil
 }
 
-func snpUpdateMetadataPages(gctx *gctx.GCTX, metadata *ovmf.OVMF, vmmType vmmtypes.VMMType) error {
-	for _, desc := range metadata.MetadataItems() {
+func LaunchDigestFromAPIObject(apiObject ovmf.APIObject, vcpuCount int, ovmfHash []byte) ([]byte, error) {
+	return launchDigest(apiObject.MetadataItems, apiObject.ResetEIP, vcpuCount, ovmfHash)
+}
+
+func LaunchDigestFromOVMF(ovmfObj ovmf.OVMF, vcpuCount int, ovmfHash []byte) ([]byte, error) {
+	resetEIP, err := ovmfObj.SevESResetEIP()
+	if err != nil {
+		return nil, fmt.Errorf("getting reset EIP: %w", err)
+	}
+	return launchDigest(ovmfObj.MetadataItems(), resetEIP, vcpuCount, ovmfHash)
+}
+
+func snpUpdateMetadataPages(gctx *gctx.GCTX, metadata []ovmf.MetadataSection, vmmType vmmtypes.VMMType) error {
+	for _, desc := range metadata {
 		st, err := desc.SectionType()
 		if err != nil {
 			return fmt.Errorf("getting sectionType: %w", err)
@@ -72,7 +77,7 @@ func snpUpdateMetadataPages(gctx *gctx.GCTX, metadata *ovmf.OVMF, vmmType vmmtyp
 	}
 
 	if vmmType == vmmtypes.EC2 {
-		for _, desc := range metadata.MetadataItems() {
+		for _, desc := range metadata {
 			st, err := desc.SectionType()
 			if err != nil {
 				return fmt.Errorf("getting sectionType: %w", err)

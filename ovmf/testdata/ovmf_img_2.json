@@ -1,1 +1,0 @@
-{"MetadataItems":[{"GPA":"0x800000","SectionTypeInt":1,"Size":"0x9000"},{"GPA":"0x80a000","SectionTypeInt":1,"Size":"0x3000"},{"GPA":"0x80d000","SectionTypeInt":2,"Size":"0x1000"},{"GPA":"0x80e000","SectionTypeInt":3,"Size":"0x1000"},{"GPA":"0x80f000","SectionTypeInt":1,"Size":"0x11000"}],"ResetEIP":"0x80b004"}
