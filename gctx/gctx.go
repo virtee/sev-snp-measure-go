@@ -22,6 +22,7 @@ const (
 // VMSA page is recorded in the RMP table with GPA (u64)(-1).
 // However, the address is page-aligned, and also all the bits above 51 are cleared.
 type GCTX struct {
+	// ld is the launch digest of the guest.
 	ld []byte
 }
 
@@ -31,11 +32,13 @@ func New(seed []byte) *GCTX {
 	}
 }
 
+// LD returns the launch digest of the guest.
 func (g *GCTX) LD() []byte {
 	return g.ld
 }
 
-// pageType type might be wrong: originally a int convertedlittle endian uint8.
+// update extends the current launch digest with the hash of a page.
+// The hash also includes the page type, GPA, and permissions.
 func (g *GCTX) update(pageType byte, gpa uint64, contents []byte) error {
 	if len(contents) != LD_SIZE {
 		return errors.New("invalid content size")
@@ -75,6 +78,7 @@ func (g *GCTX) UpdateVmsaPage(data []byte) error {
 	return g.update(0x02, VMSA_GPA, hash)
 }
 
+// UpdateZeroPages extends the current launch digest with the hash of a page containing only zeros. Pagetype is set to 0x03.
 func (g *GCTX) UpdateZeroPages(gpa uint64, lengthBytes int) error {
 	if lengthBytes%4096 != 0 {
 		return errors.New("invalid length")
@@ -89,10 +93,12 @@ func (g *GCTX) UpdateZeroPages(gpa uint64, lengthBytes int) error {
 	return nil
 }
 
+// UpdateSecretsPage extends the current launch digest with the hash of a page containing only zeros. Pagetype is set to 0x05.
 func (g *GCTX) UpdateSecretsPage(gpa uint64) error {
 	return g.update(0x05, gpa, bytes.Repeat([]byte{0x00}, LD_SIZE))
 }
 
+// UpdateSecretsPage extends the current launch digest with the hash of a page containing only zeros. Pagetype is set to 0x06.
 func (g *GCTX) UpdateCpuidPage(gpa uint64) error {
 	return g.update(0x06, gpa, bytes.Repeat([]byte{0x00}, LD_SIZE))
 }

@@ -1,4 +1,5 @@
 /*
+- Virtual Machine Save Area (VMSA).
 - Virtual Machine Control Block (VMCB).
 */
 package vmsa
@@ -16,7 +17,7 @@ const (
 	BspEIP uint32 = 0xfffffff0
 )
 
-// VMCB Segment (struct vmcb_seg in the linux kernel)
+// VmcbSeg represents a VMCB Segment (struct vmcb_seg in the linux kernel).
 type VmcbSeg struct {
 	Selector uint16
 	Attrib   uint16
