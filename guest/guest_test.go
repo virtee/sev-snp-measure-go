@@ -113,3 +113,36 @@ func TestLaunchDigestFromMetadataWrapper(t *testing.T) {
 		})
 	}
 }
+
+func TestOVMFHash(t *testing.T) {
+	testCases := map[string]struct {
+		ovmfPath string
+		ovmfHash string
+	}{
+		"success bin 1": {
+			ovmfPath: "testdata/ovmf_img_1.bin",
+			ovmfHash: "a58211791a556a630a4319dc9e2ea96cc0e9784dd9f20a4fadf81b26c98d163fcdcb6703884bbbb80d7b1de45b3d84d0",
+		},
+		"success bin 2": {
+			ovmfPath: "testdata/ovmf_img_2.bin",
+			ovmfHash: "2027a27bb9f7acfd280e4c7bd68a73973b94bf0756e5b282e004b9395f597b8d0eb4defa7d8f6549375aa4d2b146f0f3",
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			assert := assert.New(t)
+			require := require.New(t)
+
+			expectedHash, err := hex.DecodeString(tc.ovmfHash)
+			require.NoError(err)
+
+			ovmfObj, err := ovmf.New(tc.ovmfPath)
+			require.NoError(err)
+
+			hash, err := OVMFHash(ovmfObj)
+			assert.NoError(err)
+			assert.True(bytes.Equal(expectedHash, hash), fmt.Sprintf("expected hash %x, got %x", expectedHash, hash))
+		})
+	}
+}

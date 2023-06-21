@@ -11,11 +11,13 @@ import (
 	"crypto/sha512"
 	"encoding/binary"
 	"errors"
+	"fmt"
 )
 
 const (
-	VMSA_GPA = 0xFFFFFFFFF000
-	LD_SIZE  = sha512.Size384
+	VMSA_GPA  = 0xFFFFFFFFF000
+	LD_SIZE   = sha512.Size384
+	PAGE_SIZE = 4096
 )
 
 // GCTX represents a SNP Guest Context.
@@ -27,6 +29,9 @@ type GCTX struct {
 }
 
 func New(seed []byte) *GCTX {
+	if seed == nil {
+		seed = bytes.Repeat([]byte{0x00}, LD_SIZE)
+	}
 	return &GCTX{
 		ld: seed,
 	}
@@ -69,7 +74,7 @@ func (g *GCTX) update(pageType byte, gpa uint64, contents []byte) error {
 }
 
 func (g *GCTX) UpdateVmsaPage(data []byte) error {
-	if len(data) != 4096 {
+	if len(data) != PAGE_SIZE {
 		return errors.New("invalid data length")
 	}
 	h := sha512.New384()
@@ -78,9 +83,28 @@ func (g *GCTX) UpdateVmsaPage(data []byte) error {
 	return g.update(0x02, VMSA_GPA, hash)
 }
 
+// UpdateNormalPages extends the current launch digest with the hash of data.
+// The hash is generated page by page. Pagetype is set to 0x01.
+func (g *GCTX) UpdateNormalPages(startGpa uint64, data []byte) error {
+	if len(data)%PAGE_SIZE != 0 {
+		return errors.New("data length should be a multiple of 4096")
+	}
+	offset := 0
+	for offset < len(data) {
+		pageData := data[offset : offset+PAGE_SIZE]
+		sha384hash := sha512.Sum384(pageData)
+		err := g.update(0x01, startGpa+uint64(offset), sha384hash[:])
+		if err != nil {
+			return fmt.Errorf("updating page %d: %w", offset/PAGE_SIZE, err)
+		}
+		offset += PAGE_SIZE
+	}
+	return nil
+}
+
 // UpdateZeroPages extends the current launch digest with the hash of a page containing only zeros. Pagetype is set to 0x03.
 func (g *GCTX) UpdateZeroPages(gpa uint64, lengthBytes int) error {
-	if lengthBytes%4096 != 0 {
+	if lengthBytes%PAGE_SIZE != 0 {
 		return errors.New("invalid length")
 	}
 	offset := 0
@@ -88,7 +112,7 @@ func (g *GCTX) UpdateZeroPages(gpa uint64, lengthBytes int) error {
 		if err := g.update(0x03, gpa+uint64(offset), bytes.Repeat([]byte{0x00}, LD_SIZE)); err != nil {
 			return err
 		}
-		offset += 4096
+		offset += PAGE_SIZE
 	}
 	return nil
 }

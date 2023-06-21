@@ -24,6 +24,14 @@ func LaunchDigestFromOVMF(ovmfObj ovmf.OVMF, vcpuCount int, ovmfHash []byte) ([]
 	return launchDigest(ovmfObj.MetadataItems(), resetEIP, vcpuCount, ovmfHash)
 }
 
+func OVMFHash(ovmfObj ovmf.OVMF) ([]byte, error) {
+	gctx := gctx.New(nil)
+	if err := gctx.UpdateNormalPages(uint64(ovmfObj.GPA()), ovmfObj.Data()); err != nil {
+		return nil, fmt.Errorf("updating normal pages: %w", err)
+	}
+	return gctx.LD(), nil
+}
+
 // launchDigest calculates the launch digest from metadata and ovmfHash for a SNP guest.
 func launchDigest(metadata []ovmf.MetadataSection, resetEIP uint32, vcpuCount int, ovmfHash []byte) ([]byte, error) {
 	guestCtx := gctx.New(ovmfHash)
