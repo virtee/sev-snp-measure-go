@@ -164,27 +164,27 @@ type OVMF struct {
 	metadataItems []MetadataSection
 }
 
-// APIObject replaces the OVMF binary when using an OVMF hash.
+// MetadataWrapper replaces the OVMF binary when using an OVMF hash.
 // It contains the metadata items and the reset EIP that have been parsed from the binary before.
-type APIObject struct {
+type MetadataWrapper struct {
 	MetadataItems []MetadataSection
 	ResetEIP      uint32
 }
 
-func NewAPIObject(ovmf OVMF) (*APIObject, error) {
+func NewMetadataWrapper(ovmf OVMF) (*MetadataWrapper, error) {
 	resetEIP, err := ovmf.SevESResetEIP()
 	if err != nil {
 		return nil, fmt.Errorf("getting reset EIP: %w", err)
 	}
 
-	return &APIObject{
+	return &MetadataWrapper{
 		MetadataItems: ovmf.MetadataItems(),
 		ResetEIP:      resetEIP,
 	}, nil
 }
 
 // MarshalJSON is a custom marshaller for MetadataSection. It converts the GPA and Size to hex strings.
-func (m *APIObject) MarshalJSON() ([]byte, error) {
+func (m *MetadataWrapper) MarshalJSON() ([]byte, error) {
 	return json.Marshal(map[string]interface{}{
 		"MetadataItems": m.MetadataItems,
 		"ResetEIP":      fmt.Sprintf("0x%x", m.ResetEIP),
@@ -192,7 +192,7 @@ func (m *APIObject) MarshalJSON() ([]byte, error) {
 }
 
 // UnmarshalJSON is a custom unmarshaller for MetadataSection. It converts the GPA and Size from hex strings.
-func (m *APIObject) UnmarshalJSON(data []byte) error {
+func (m *MetadataWrapper) UnmarshalJSON(data []byte) error {
 	var tmp map[string]json.RawMessage
 	err := json.Unmarshal(data, &tmp)
 	if err != nil {
@@ -232,7 +232,7 @@ func (m *APIObject) UnmarshalJSON(data []byte) error {
 
 // NewFromAPIObject creates an OVMF object from an APIObject.
 // This OVMF object can only be used in conjunction with a OVMF Hash, as the data property is not
-func NewFromAPIObject(apiObject APIObject) (OVMF, error) {
+func NewFromAPIObject(apiObject MetadataWrapper) (OVMF, error) {
 	ovmf := OVMF{}
 
 	ovmf.metadataItems = apiObject.MetadataItems

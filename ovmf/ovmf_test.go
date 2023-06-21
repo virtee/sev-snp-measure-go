@@ -36,7 +36,7 @@ func TestNewAPIObject(t *testing.T) {
 	ovmf, err := New("../guest/testdata/ovmf_img_2.bin")
 	require.NoError(t, err)
 
-	apiObject, err := NewAPIObject(ovmf)
+	apiObject, err := NewMetadataWrapper(ovmf)
 	require.NoError(t, err)
 
 	data, err := json.Marshal(apiObject)

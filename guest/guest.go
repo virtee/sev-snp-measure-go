@@ -10,6 +10,20 @@ import (
 	"edgelesssys/sevsnpmeasure/vmsa"
 )
 
+// LaunchDigestFromOVMF calculates a launch digest from a MetadataWrapper object and an ovmfHash.
+func LaunchDigestFromMetadataWrapper(wrapper ovmf.MetadataWrapper, vcpuCount int, ovmfHash []byte) ([]byte, error) {
+	return launchDigest(wrapper.MetadataItems, wrapper.ResetEIP, vcpuCount, ovmfHash)
+}
+
+// LaunchDigestFromOVMF calculates a launch digest from an OVMF object and an ovmfHash.
+func LaunchDigestFromOVMF(ovmfObj ovmf.OVMF, vcpuCount int, ovmfHash []byte) ([]byte, error) {
+	resetEIP, err := ovmfObj.SevESResetEIP()
+	if err != nil {
+		return nil, fmt.Errorf("getting reset EIP: %w", err)
+	}
+	return launchDigest(ovmfObj.MetadataItems(), resetEIP, vcpuCount, ovmfHash)
+}
+
 // launchDigest calculates the launch digest from metadata and ovmfHash for a SNP guest.
 func launchDigest(metadata []ovmf.MetadataSection, resetEIP uint32, vcpuCount int, ovmfHash []byte) ([]byte, error) {
 	guestCtx := gctx.New(ovmfHash)
@@ -36,18 +50,6 @@ func launchDigest(metadata []ovmf.MetadataSection, resetEIP uint32, vcpuCount in
 		}
 	}
 	return guestCtx.LD(), nil
-}
-
-func LaunchDigestFromAPIObject(apiObject ovmf.APIObject, vcpuCount int, ovmfHash []byte) ([]byte, error) {
-	return launchDigest(apiObject.MetadataItems, apiObject.ResetEIP, vcpuCount, ovmfHash)
-}
-
-func LaunchDigestFromOVMF(ovmfObj ovmf.OVMF, vcpuCount int, ovmfHash []byte) ([]byte, error) {
-	resetEIP, err := ovmfObj.SevESResetEIP()
-	if err != nil {
-		return nil, fmt.Errorf("getting reset EIP: %w", err)
-	}
-	return launchDigest(ovmfObj.MetadataItems(), resetEIP, vcpuCount, ovmfHash)
 }
 
 func snpUpdateMetadataPages(gctx *gctx.GCTX, metadata []ovmf.MetadataSection, vmmType vmmtypes.VMMType) error {

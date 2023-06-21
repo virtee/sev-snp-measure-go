@@ -64,7 +64,7 @@ func TestLaunchDigestFromOVMF(t *testing.T) {
 	}
 }
 
-func TestLaunchDigestFromAPIObject(t *testing.T) {
+func TestLaunchDigestFromMetadataWrapper(t *testing.T) {
 	testCases := map[string]struct {
 		apiObjectPath string
 		ovmfHash      string
@@ -97,11 +97,11 @@ func TestLaunchDigestFromAPIObject(t *testing.T) {
 			data, err := os.ReadFile(tc.apiObjectPath)
 			require.NoError(err)
 
-			var apiObject ovmf.APIObject
+			var apiObject ovmf.MetadataWrapper
 			err = json.Unmarshal(data, &apiObject)
 			require.NoError(err)
 
-			launchDigest, err := LaunchDigestFromAPIObject(apiObject, tc.vcpuCount, hash)
+			launchDigest, err := LaunchDigestFromMetadataWrapper(apiObject, tc.vcpuCount, hash)
 			if tc.wantErr {
 				assert.Error(err)
 			} else {
