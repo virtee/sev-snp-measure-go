@@ -10,7 +10,7 @@ import (
 	"errors"
 	"fmt"
 
-	"edgelesssys/sevsnpmeasure/vmmtypes"
+	"edgelesssys/sev-snp-measure/vmmtypes"
 )
 
 const (

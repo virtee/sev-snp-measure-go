@@ -4,10 +4,10 @@ import (
 	"errors"
 	"fmt"
 
-	"edgelesssys/sevsnpmeasure/gctx"
-	"edgelesssys/sevsnpmeasure/ovmf"
-	"edgelesssys/sevsnpmeasure/vmmtypes"
-	"edgelesssys/sevsnpmeasure/vmsa"
+	"edgelesssys/sev-snp-measure/gctx"
+	"edgelesssys/sev-snp-measure/ovmf"
+	"edgelesssys/sev-snp-measure/vmmtypes"
+	"edgelesssys/sev-snp-measure/vmsa"
 )
 
 // LaunchDigestFromOVMF calculates a launch digest from a MetadataWrapper object and an ovmfHash.

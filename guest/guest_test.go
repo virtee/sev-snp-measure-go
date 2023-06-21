@@ -8,7 +8,7 @@ import (
 	"os"
 	"testing"
 
-	"edgelesssys/sevsnpmeasure/ovmf"
+	"edgelesssys/sev-snp-measure/ovmf"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
