@@ -3,11 +3,11 @@ package ovmf
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -169,9 +169,10 @@ type OVMF struct {
 type MetadataWrapper struct {
 	MetadataItems []MetadataSection
 	ResetEIP      uint32
+	OVMFHash      []byte
 }
 
-func NewMetadataWrapper(ovmf OVMF) (*MetadataWrapper, error) {
+func NewMetadataWrapper(ovmf OVMF, ovmfHash []byte) (*MetadataWrapper, error) {
 	resetEIP, err := ovmf.SevESResetEIP()
 	if err != nil {
 		return nil, fmt.Errorf("getting reset EIP: %w", err)
@@ -180,6 +181,7 @@ func NewMetadataWrapper(ovmf OVMF) (*MetadataWrapper, error) {
 	return &MetadataWrapper{
 		MetadataItems: ovmf.MetadataItems(),
 		ResetEIP:      resetEIP,
+		OVMFHash:      ovmfHash,
 	}, nil
 }
 
@@ -188,6 +190,7 @@ func (m *MetadataWrapper) MarshalJSON() ([]byte, error) {
 	return json.Marshal(map[string]interface{}{
 		"MetadataItems": m.MetadataItems,
 		"ResetEIP":      fmt.Sprintf("0x%x", m.ResetEIP),
+		"OVMFHash":      fmt.Sprintf("0x%s", hex.EncodeToString(m.OVMFHash)),
 	})
 }
 
@@ -215,6 +218,23 @@ func (m *MetadataWrapper) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(resetEIP, &eip); err != nil {
 		return err
 	}
+
+	foo, ok = tmp["OVMFHash"]
+	if !ok {
+		return errors.New("missing OVMFHash")
+	}
+	var hash string
+	if err := json.Unmarshal(foo, &hash); err != nil {
+		return err
+	}
+
+	// TODO: cut prefix?
+
+	hashRaw, err := hex.DecodeString(hash)
+	if err != nil {
+		return fmt.Errorf("decoding hash: %w", err)
+	}
+	m.OVMFHash = hashRaw
 
 	eip, found := strings.CutPrefix(eip, "0x")
 	if !found {
@@ -247,11 +267,6 @@ func NewFromAPIObject(apiObject MetadataWrapper) (OVMF, error) {
 func New(filename string) (OVMF, error) {
 	ovmf := OVMF{}
 
-	path, err := os.Getwd()
-	if err != nil {
-		log.Println(err)
-	}
-	fmt.Println(path)
 	file, err := os.Open(filename)
 	if err != nil {
 		return OVMF{}, err

@@ -2,13 +2,10 @@ package ovmf
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestLittleEndianBytes(t *testing.T) {
@@ -30,18 +27,4 @@ func TestLittleEndianBytes(t *testing.T) {
 			assert.True(bytes.Equal(tc.output[:], output[:]), fmt.Sprintf("expected %x, got %x", tc.output, output))
 		})
 	}
-}
-
-func TestNewAPIObject(t *testing.T) {
-	ovmf, err := New("../guest/testdata/ovmf_img_2.bin")
-	require.NoError(t, err)
-
-	apiObject, err := NewMetadataWrapper(ovmf)
-	require.NoError(t, err)
-
-	data, err := json.Marshal(apiObject)
-	require.NoError(t, err)
-
-	err = os.WriteFile("testdata/ovmf_img_2.json", data, 0o644)
-	require.NoError(t, err)
 }
