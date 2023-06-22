@@ -1,4 +1,11 @@
 /*
+Copyright Edgeless Systems GmbH
+Copyright 2022- IBM Inc. All rights reserved
+
+SPDX-License-Identifier: Apache-2.0
+*/
+
+/*
 - Guest Context (GCTX).
 - VM Save Area (VMSA).
 - Reverse Map Table (RMP).

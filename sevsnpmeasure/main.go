@@ -1,9 +1,16 @@
+/*
+Copyright Edgeless Systems GmbH
+Copyright 2022- IBM Inc. All rights reserved
+
+SPDX-License-Identifier: Apache-2.0
+*/
+
 package main
 
 import (
 	"os"
 
-	"edgelesssys/sev-snp-measure/sevsnpmeasure/cmd"
+	"github.com/edgelesssys/sev-snp-measure-go/sevsnpmeasure/cmd"
 )
 
 func main() {
