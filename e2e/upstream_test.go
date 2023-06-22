@@ -13,9 +13,8 @@ import (
 	"strconv"
 	"testing"
 
-	"edgelesssys/sev-snp-measure/guest"
-	"edgelesssys/sev-snp-measure/ovmf"
-
+	"github.com/edgelesssys/sev-snp-measure-go/guest"
+	"github.com/edgelesssys/sev-snp-measure-go/ovmf"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

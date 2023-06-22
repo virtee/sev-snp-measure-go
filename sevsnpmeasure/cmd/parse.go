@@ -5,9 +5,8 @@ import (
 	"fmt"
 	"os"
 
-	"edgelesssys/sev-snp-measure/guest"
-	"edgelesssys/sev-snp-measure/ovmf"
-
+	"github.com/edgelesssys/sev-snp-measure-go/guest"
+	"github.com/edgelesssys/sev-snp-measure-go/ovmf"
 	"github.com/spf13/cobra"
 )
 
