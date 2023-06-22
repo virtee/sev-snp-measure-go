@@ -1,13 +1,20 @@
+/*
+Copyright Edgeless Systems GmbH
+Copyright 2022- IBM Inc. All rights reserved
+
+SPDX-License-Identifier: Apache-2.0
+*/
+
 package guest
 
 import (
 	"errors"
 	"fmt"
 
-	"edgelesssys/sev-snp-measure/gctx"
-	"edgelesssys/sev-snp-measure/ovmf"
-	"edgelesssys/sev-snp-measure/vmmtypes"
-	"edgelesssys/sev-snp-measure/vmsa"
+	"github.com/edgelesssys/sev-snp-measure-go/gctx"
+	"github.com/edgelesssys/sev-snp-measure-go/ovmf"
+	"github.com/edgelesssys/sev-snp-measure-go/vmmtypes"
+	"github.com/edgelesssys/sev-snp-measure-go/vmsa"
 )
 
 // LaunchDigestFromOVMF calculates a launch digest from a MetadataWrapper object and an ovmfHash.

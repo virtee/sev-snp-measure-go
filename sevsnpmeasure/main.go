@@ -1,9 +1,15 @@
+/*
+Copyright Edgeless Systems GmbH
+
+SPDX-License-Identifier: Apache-2.0
+*/
+
 package main
 
 import (
 	"os"
 
-	"edgelesssys/sev-snp-measure/sevsnpmeasure/cmd"
+	"github.com/edgelesssys/sev-snp-measure-go/sevsnpmeasure/cmd"
 )
 
 func main() {

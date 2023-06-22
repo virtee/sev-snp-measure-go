@@ -1,3 +1,5 @@
+# sev-snp-measure-go
+
 This tool is a direct port of [ibm/sev-snp-measure](https://github.com/IBM/sev-snp-measure).
 Most of the code was translated using chatGPT.
 Motivation to write this tool is to integrate measurement calculation into Go tools.

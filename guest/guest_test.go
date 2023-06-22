@@ -1,3 +1,10 @@
+/*
+Copyright Edgeless Systems GmbH
+Copyright 2022- IBM Inc. All rights reserved
+
+SPDX-License-Identifier: Apache-2.0
+*/
+
 package guest
 
 import (
@@ -8,8 +15,7 @@ import (
 	"os"
 	"testing"
 
-	"edgelesssys/sev-snp-measure/ovmf"
-
+	"github.com/edgelesssys/sev-snp-measure-go/ovmf"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

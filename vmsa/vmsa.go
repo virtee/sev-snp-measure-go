@@ -1,4 +1,11 @@
 /*
+Copyright Edgeless Systems GmbH
+Copyright 2022- IBM Inc. All rights reserved
+
+SPDX-License-Identifier: Apache-2.0
+*/
+
+/*
 - Virtual Machine Save Area (VMSA).
 - Virtual Machine Control Block (VMCB).
 */
@@ -10,7 +17,7 @@ import (
 	"errors"
 	"fmt"
 
-	"edgelesssys/sev-snp-measure/vmmtypes"
+	"github.com/edgelesssys/sev-snp-measure-go/vmmtypes"
 )
 
 const (
