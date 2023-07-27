@@ -1,9 +1,11 @@
-name: AWS SNP Launch Measurement
+name: Upstream Equivalence
 
 on:
   schedule:
-    # Run daily at 22:00.
-    - cron: '0 22 * * *'
+    # Run every Monday, Wednesday and Friday at 22:00.
+    # We want to learn somewhat quickly about changes in upstream.
+    # But we do not expect any changes until the next CPU generation.
+    - cron: '0 22 * * 1,3,5'
   workflow_dispatch:
 
 jobs:
