@@ -17,9 +17,9 @@ import (
 	"github.com/edgelesssys/sev-snp-measure-go/vmsa"
 )
 
-// LaunchDigestFromOVMF calculates a launch digest from a MetadataWrapper object and an ovmfHash.
-func LaunchDigestFromMetadataWrapper(wrapper ovmf.MetadataWrapper, vcpuCount int, ovmfHash []byte) ([]byte, error) {
-	return launchDigest(wrapper.MetadataItems, wrapper.ResetEIP, vcpuCount, ovmfHash)
+// LaunchDigestFromOVMF calculates a launch digest from a MetadataWrapper object.
+func LaunchDigestFromMetadataWrapper(wrapper ovmf.MetadataWrapper, vcpuCount int) ([]byte, error) {
+	return launchDigest(wrapper.MetadataItems, wrapper.ResetEIP, vcpuCount, wrapper.OVMFHash)
 }
 
 // LaunchDigestFromOVMF calculates a launch digest from an OVMF object and an ovmfHash.
