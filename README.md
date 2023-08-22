@@ -13,6 +13,30 @@ What this port does that [virtee/sev-snp-measure](https://github.com/virtee/sev-
 If you need more features or find a bug please open an issue.
 For features that [virtee/sev-snp-measure](https://github.com/virtee/sev-snp-measure) provides, addition should be quick.
 
+Pull requests are welcome!
+
+# Development
+
+Build:
+```
+go build -o sev-snp-measure ./sevsnpmeasure/
+```
+
+Run unit tests:
+```
+go test ./...
+```
+
+Run e2e tests:
+```
+go test --tags=e2e ./e2e --expected-values data.json --ovmf ovmf_img.fd
+```
+
+Run linter:
+```
+golangci-lint run ./...
+```
+
 # Used by
 
 This tool was originally developed for [Constellation](https://github.com/edgelesssys/constellation) to verify launch measurements on AWS's SNP instances.
