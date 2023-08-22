@@ -26,5 +26,6 @@
             "Size": "0x11000"
         }
     ],
-    "ResetEIP": "0x80b004"
+    "ResetEIP": "0x80b004",
+    "OVMFHash": "2027a27bb9f7acfd280e4c7bd68a73973b94bf0756e5b282e004b9395f597b8d0eb4defa7d8f6549375aa4d2b146f0f3"
 }
