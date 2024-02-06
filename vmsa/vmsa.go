@@ -145,7 +145,7 @@ type SevEsSaveArea struct {
 	Unused           [2448]uint8
 }
 
-func BuildSaveArea(eip uint32, vcpuSig uint64, vmmType vmmtypes.VMMType) (SevEsSaveArea, error) {
+func BuildSaveArea(eip uint32, guestFeatures uint64, vcpuSig uint64, vmmType vmmtypes.VMMType) (SevEsSaveArea, error) {
 	var csFlags, ssFlags, trFlags uint16
 	var rdx uint64
 	switch vmmType {
@@ -185,7 +185,7 @@ func BuildSaveArea(eip uint32, vcpuSig uint64, vmmType vmmtypes.VMMType) (SevEsS
 		Rip:         uint64(eip & 0xffff),
 		GPat:        0x7040600070406, // PAT MSR: See AMD APM Vol 2, Section A.3.
 		Rdx:         rdx,
-		SevFeatures: 0x1, // Make this configurable if we want to support other modes than SEV-SNP.
+		SevFeatures: guestFeatures, // Documentation: https://github.com/virtee/sev-snp-measure/pull/32/files#diff-b335630551682c19a781afebcf4d07bf978fb1f8ac04c6bf87428ed5106870f5R125.
 		Xcr0:        0x1,
 	}, nil
 }
@@ -195,14 +195,14 @@ type VMSA struct {
 	ApSaveArea  SevEsSaveArea
 }
 
-func New(apEip uint32, vcpuSig uint64, vmmType vmmtypes.VMMType) (VMSA, error) {
-	bspSaveArea, err := BuildSaveArea(BspEIP, vcpuSig, vmmType)
+func New(apEip uint32, guestFeatures uint64, vcpuSig uint64, vmmType vmmtypes.VMMType) (VMSA, error) {
+	bspSaveArea, err := BuildSaveArea(BspEIP, guestFeatures, vcpuSig, vmmType)
 	if err != nil {
 		return VMSA{}, err
 	}
 	var apSaveArea SevEsSaveArea
 	if apEip != 0 {
-		apSaveArea, err = BuildSaveArea(apEip, vcpuSig, vmmType)
+		apSaveArea, err = BuildSaveArea(apEip, guestFeatures, vcpuSig, vmmType)
 		if err != nil {
 			return VMSA{}, err
 		}
