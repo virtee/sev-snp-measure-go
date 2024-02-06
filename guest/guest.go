@@ -18,17 +18,17 @@ import (
 )
 
 // LaunchDigestFromOVMF calculates a launch digest from a MetadataWrapper object.
-func LaunchDigestFromMetadataWrapper(wrapper ovmf.MetadataWrapper, vcpuCount int) ([]byte, error) {
-	return launchDigest(wrapper.MetadataItems, wrapper.ResetEIP, vcpuCount, wrapper.OVMFHash)
+func LaunchDigestFromMetadataWrapper(wrapper ovmf.MetadataWrapper, guestFeatures uint64, vcpuCount int) ([]byte, error) {
+	return launchDigest(wrapper.MetadataItems, wrapper.ResetEIP, guestFeatures, vcpuCount, wrapper.OVMFHash)
 }
 
 // LaunchDigestFromOVMF calculates a launch digest from an OVMF object and an ovmfHash.
-func LaunchDigestFromOVMF(ovmfObj ovmf.OVMF, vcpuCount int, ovmfHash []byte) ([]byte, error) {
+func LaunchDigestFromOVMF(ovmfObj ovmf.OVMF, guestFeatures uint64, vcpuCount int, ovmfHash []byte) ([]byte, error) {
 	resetEIP, err := ovmfObj.SevESResetEIP()
 	if err != nil {
 		return nil, fmt.Errorf("getting reset EIP: %w", err)
 	}
-	return launchDigest(ovmfObj.MetadataItems(), resetEIP, vcpuCount, ovmfHash)
+	return launchDigest(ovmfObj.MetadataItems(), resetEIP, guestFeatures, vcpuCount, ovmfHash)
 }
 
 func OVMFHash(ovmfObj ovmf.OVMF) ([]byte, error) {
@@ -40,7 +40,7 @@ func OVMFHash(ovmfObj ovmf.OVMF) ([]byte, error) {
 }
 
 // launchDigest calculates the launch digest from metadata and ovmfHash for a SNP guest.
-func launchDigest(metadata []ovmf.MetadataSection, resetEIP uint32, vcpuCount int, ovmfHash []byte) ([]byte, error) {
+func launchDigest(metadata []ovmf.MetadataSection, resetEIP uint32, guestFeatures uint64, vcpuCount int, ovmfHash []byte) ([]byte, error) {
 	guestCtx := gctx.New(ovmfHash)
 
 	if err := snpUpdateMetadataPages(guestCtx, metadata, vmmtypes.EC2); err != nil {
@@ -49,7 +49,7 @@ func launchDigest(metadata []ovmf.MetadataSection, resetEIP uint32, vcpuCount in
 
 	// Add support for flags {vcpus_family, vcpu_sig, vcpu_type} here, if relevant.
 	// Use cpuid pkg.
-	vmsaObj, err := vmsa.New(resetEIP, 0, vmmtypes.EC2)
+	vmsaObj, err := vmsa.New(resetEIP, guestFeatures, 0, vmmtypes.EC2)
 	if err != nil {
 		return nil, fmt.Errorf("creating VMSA: %w", err)
 	}
