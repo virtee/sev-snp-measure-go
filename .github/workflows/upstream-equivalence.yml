@@ -62,7 +62,7 @@ jobs:
     - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
       with:
         repository: edgelesssys/sev-snp-measure-go.git
-        ref: main
+        ref: ${{ github.ref_name }}
         path: sev-snp-measure-go
 
     - name: Run sev-snp-measure
