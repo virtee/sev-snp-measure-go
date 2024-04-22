@@ -1,12 +1,12 @@
 name: Upstream Equivalence
 
 on:
+  workflow_dispatch:
   schedule:
     # Run every Monday, Wednesday and Friday at 22:00.
     # We want to learn somewhat quickly about changes in upstream.
     # But we do not expect changes on a regular basis.
     - cron: '0 22 * * 1,3,5'
-  workflow_dispatch:
 
 jobs:
   run:
@@ -73,7 +73,7 @@ jobs:
 
         for vcpus in 2 4 8 16 32 48 64;
         do
-          measurement="$(./sev-snp-measure.py --mode snp --vmm-type=ec2 --vcpus="$vcpus" --ovmf=${{ steps.build-uefi.outputs.ovmfPath }})"
+          measurement="$(./sev-snp-measure.py --guest-features 0x21 --mode snp --vmm-type=ec2 --vcpus="$vcpus" --ovmf=${{ steps.build-uefi.outputs.ovmfPath }})"
 
           jq --arg vcpus "$vcpus" --arg measurement "$measurement" '. += [{"vcpus": $vcpus, "measurement": $measurement}]' intermediate.json > measurements.json
           cp measurements.json intermediate.json
