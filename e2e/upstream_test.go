@@ -55,7 +55,7 @@ func TestCompatibility(t *testing.T) {
 		require.NoError(err, "calculating OVMF hash: %s", err)
 
 		// Documentation for guestFeatures value: https://github.com/virtee/sev-snp-measure/pull/32/files#diff-b335630551682c19a781afebcf4d07bf978fb1f8ac04c6bf87428ed5106870f5R126.
-		digest, err := guest.LaunchDigestFromOVMF(ovmfObj, 0x21, entry.vcpus, ovmfHash, vmmtypes.EC2)
+		digest, err := guest.LaunchDigestFromOVMF(ovmfObj, 0x21, entry.vcpus, ovmfHash, vmmtypes.EC2, "")
 		require.NoError(err, "calculating launch digest: %s", err)
 
 		assert.True(bytes.Equal(digest, entry.measurement), "expected hash %x, got %x", entry.measurement, digest)
