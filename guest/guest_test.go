@@ -16,6 +16,7 @@ import (
 	"testing"
 
 	"github.com/edgelesssys/sev-snp-measure-go/ovmf"
+	"github.com/edgelesssys/sev-snp-measure-go/vmmtypes"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -57,7 +58,7 @@ func TestLaunchDigestFromOVMF(t *testing.T) {
 			ovmfObj, err := ovmf.New(tc.ovmfPath)
 			require.NoError(err)
 
-			launchDigest, err := LaunchDigestFromOVMF(ovmfObj, 0x1, tc.vcpuCount, hash)
+			launchDigest, err := LaunchDigestFromOVMF(ovmfObj, 0x1, tc.vcpuCount, hash, vmmtypes.EC2)
 			if tc.wantErr {
 				assert.Error(err)
 			} else {
@@ -101,7 +102,7 @@ func TestLaunchDigestFromMetadataWrapper(t *testing.T) {
 			err = json.Unmarshal(data, &apiObject)
 			require.NoError(err)
 
-			launchDigest, err := LaunchDigestFromMetadataWrapper(apiObject, 0x1, tc.vcpuCount)
+			launchDigest, err := LaunchDigestFromMetadataWrapper(apiObject, 0x1, tc.vcpuCount, vmmtypes.EC2)
 			if tc.wantErr {
 				assert.Error(err)
 			} else {
