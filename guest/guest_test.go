@@ -58,7 +58,7 @@ func TestLaunchDigestFromOVMF(t *testing.T) {
 			ovmfObj, err := ovmf.New(tc.ovmfPath)
 			require.NoError(err)
 
-			launchDigest, err := LaunchDigestFromOVMF(ovmfObj, 0x1, tc.vcpuCount, hash, vmmtypes.EC2)
+			launchDigest, err := LaunchDigestFromOVMF(ovmfObj, 0x1, tc.vcpuCount, hash, vmmtypes.EC2, "")
 			if tc.wantErr {
 				assert.Error(err)
 			} else {
@@ -102,7 +102,7 @@ func TestLaunchDigestFromMetadataWrapper(t *testing.T) {
 			err = json.Unmarshal(data, &apiObject)
 			require.NoError(err)
 
-			launchDigest, err := LaunchDigestFromMetadataWrapper(apiObject, 0x1, tc.vcpuCount, vmmtypes.EC2)
+			launchDigest, err := LaunchDigestFromMetadataWrapper(apiObject, 0x1, tc.vcpuCount, vmmtypes.EC2, "")
 			if tc.wantErr {
 				assert.Error(err)
 			} else {
