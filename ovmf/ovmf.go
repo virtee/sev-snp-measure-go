@@ -197,7 +197,7 @@ func (m *MetadataWrapper) MarshalJSON() ([]byte, error) {
 	return json.Marshal(map[string]interface{}{
 		"MetadataItems": m.MetadataItems,
 		"ResetEIP":      fmt.Sprintf("0x%x", m.ResetEIP),
-		"OVMFHash":      fmt.Sprintf("0x%s", hex.EncodeToString(m.OVMFHash)),
+		"OVMFHash":      fmt.Sprintf("%s", hex.EncodeToString(m.OVMFHash)),
 	})
 }
 
