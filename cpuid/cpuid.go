@@ -44,4 +44,6 @@ var CpuSigs = map[string]int{
 	"EPYC-Milan":    cpuSig(25, 1, 1),
 	"EPYC-Milan-v1": cpuSig(25, 1, 1),
 	"EPYC-Milan-v2": cpuSig(25, 1, 1),
+	"EPYC-Genoa":    cpuSig(25, 17, 0),
+	"EPYC-Genoa-v1": cpuSig(25, 17, 0),
 }
