@@ -18,7 +18,7 @@ import (
 	"github.com/edgelesssys/sev-snp-measure-go/cpuid"
 )
 
-// LaunchDigestFromOVMF calculates a launch digest from a MetadataWrapper object.
+// LaunchDigestFromMetadataWrapper calculates a launch digest from a MetadataWrapper object.
 func LaunchDigestFromMetadataWrapper(wrapper ovmf.MetadataWrapper, guestFeatures uint64, vcpuCount int, vmmtype vmmtypes.VMMType, vcpu_type string) ([]byte, error) {
 	return launchDigest(wrapper.MetadataItems, wrapper.ResetEIP, guestFeatures, vcpuCount, wrapper.OVMFHash, vmmtype, vcpu_type)
 }
