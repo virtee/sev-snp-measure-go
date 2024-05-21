@@ -11,8 +11,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/edgelesssys/sev-snp-measure-go/guest"
-	"github.com/edgelesssys/sev-snp-measure-go/ovmf"
+	"github.com/virtee/sev-snp-measure-go/guest"
+	"github.com/virtee/sev-snp-measure-go/ovmf"
 	"github.com/spf13/cobra"
 )
 

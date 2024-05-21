@@ -17,7 +17,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/edgelesssys/sev-snp-measure-go/vmmtypes"
+	"github.com/virtee/sev-snp-measure-go/vmmtypes"
 )
 
 const (
