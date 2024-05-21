@@ -21,9 +21,9 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/edgelesssys/sev-snp-measure-go/guest"
-	"github.com/edgelesssys/sev-snp-measure-go/ovmf"
-	"github.com/edgelesssys/sev-snp-measure-go/vmmtypes"
+	"github.com/virtee/sev-snp-measure-go/guest"
+	"github.com/virtee/sev-snp-measure-go/ovmf"
+	"github.com/virtee/sev-snp-measure-go/vmmtypes"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

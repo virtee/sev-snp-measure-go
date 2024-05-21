@@ -1,4 +1,4 @@
-module github.com/edgelesssys/sev-snp-measure-go
+module github.com/virtee/sev-snp-measure-go
 
 go 1.20
 

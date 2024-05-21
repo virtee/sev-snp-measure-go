@@ -11,11 +11,11 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/edgelesssys/sev-snp-measure-go/cpuid"
-	"github.com/edgelesssys/sev-snp-measure-go/gctx"
-	"github.com/edgelesssys/sev-snp-measure-go/ovmf"
-	"github.com/edgelesssys/sev-snp-measure-go/vmmtypes"
-	"github.com/edgelesssys/sev-snp-measure-go/vmsa"
+	"github.com/virtee/sev-snp-measure-go/cpuid"
+	"github.com/virtee/sev-snp-measure-go/gctx"
+	"github.com/virtee/sev-snp-measure-go/ovmf"
+	"github.com/virtee/sev-snp-measure-go/vmmtypes"
+	"github.com/virtee/sev-snp-measure-go/vmsa"
 )
 
 // LaunchDigestFromMetadataWrapper calculates a launch digest from a MetadataWrapper object.
