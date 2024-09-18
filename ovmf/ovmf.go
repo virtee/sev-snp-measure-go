@@ -28,6 +28,7 @@ const (
 	SNPSECMEM SectionType = iota + 1
 	SNPSecrets
 	CPUID
+	SVSMCAA
 	SNPKernelHashes SectionType = 0x10
 
 	FOUR_GB                 = 0x100000000
@@ -169,6 +170,7 @@ type OVMF struct {
 	data          []byte
 	table         map[string][]byte
 	metadataItems []MetadataSection
+	endAt         int
 }
 
 // MetadataWrapper replaces the OVMF binary when using an OVMF hash.
@@ -197,7 +199,7 @@ func (m *MetadataWrapper) MarshalJSON() ([]byte, error) {
 	return json.Marshal(map[string]interface{}{
 		"MetadataItems": m.MetadataItems,
 		"ResetEIP":      fmt.Sprintf("0x%x", m.ResetEIP),
-		"OVMFHash":      fmt.Sprintf("%s", hex.EncodeToString(m.OVMFHash)),
+		"OVMFHash":      hex.EncodeToString(m.OVMFHash),
 	})
 }
 
@@ -271,8 +273,20 @@ func NewFromAPIObject(apiObject MetadataWrapper) (OVMF, error) {
 	return ovmf, nil
 }
 
-func New(filename string) (OVMF, error) {
-	ovmf := OVMF{}
+func NewFromMetadataItems(metadataItems []MetadataSection) OVMF {
+	return OVMF{
+		metadataItems: metadataItems,
+	}
+}
+
+func New(filename string, endAt int) (OVMF, error) {
+	if endAt == 0 {
+		endAt = FOUR_GB
+	}
+
+	ovmf := OVMF{
+		endAt: endAt,
+	}
 
 	file, err := os.Open(filename)
 	if err != nil {
@@ -305,7 +319,7 @@ func (o *OVMF) Data() []byte {
 }
 
 func (o *OVMF) GPA() int {
-	return FOUR_GB - len(o.data)
+	return o.endAt - len(o.data)
 }
 
 func (o *OVMF) TableItem(guid string) ([]byte, error) {
@@ -328,6 +342,36 @@ func (o *OVMF) SevESResetEIP() (uint32, error) {
 		return 0, fmt.Errorf("invalid SEV_ES_RESET_BLOCK_GUID item size %d, expected 4", len(item))
 	}
 	return binary.LittleEndian.Uint32(item[:4]), nil
+}
+
+func (o *OVMF) Size() int {
+	return len(o.data)
+}
+
+func (o *OVMF) EndGPA() int {
+	return o.GPA() + o.Size()
+}
+
+func (o *OVMF) HasMetadataSection(sectionType SectionType) bool {
+	for _, item := range o.metadataItems {
+		if SectionType(item.SectionTypeInt) == sectionType {
+			return true
+		}
+	}
+	return false
+}
+
+func (o *OVMF) IsSevHashesTableSupported() bool {
+	_, ok := o.table[SEV_HASH_TABLE_RV_GUID]
+	return ok && o.SevHashesTableGPA() != 0
+}
+
+func (o *OVMF) SevHashesTableGPA() uint32 {
+	entry, ok := o.table[SEV_HASH_TABLE_RV_GUID]
+	if !ok {
+		return 0
+	}
+	return binary.LittleEndian.Uint32(entry[:4])
 }
 
 func (o *OVMF) parseFooterTable() error {
@@ -365,7 +409,7 @@ func (o *OVMF) parseFooterTable() error {
 		}
 
 		if entry.Size < uint16(entryHeaderSize) {
-			return errors.New("Invalid entry size")
+			return errors.New("invalid entry size")
 		}
 
 		guidLE := LittleEndianBytes(entry.Guid)
@@ -438,4 +482,28 @@ func reverseBytes(bytes []byte) []byte {
 		reversed[i] = bytes[length-i-1]
 	}
 	return reversed
+}
+
+const (
+	SVSMInfoGUID = "a789a612-0597-4c4b-a49f-cbb1fe9d1ddd"
+)
+
+type SVSM struct {
+	OVMF
+}
+
+func NewSVSM(filename string, endAt int) (*SVSM, error) {
+	ovmf, err := New(filename, endAt)
+	if err != nil {
+		return nil, err
+	}
+	return &SVSM{OVMF: ovmf}, nil
+}
+
+func (s *SVSM) SevEsResetEip() (uint32, error) {
+	entry, ok := s.table[SVSMInfoGUID]
+	if !ok {
+		return 0, errors.New("can't find SVSM_INFO_GUID entry in SVSM table")
+	}
+	return binary.LittleEndian.Uint32(entry[:4]) + uint32(s.GPA()), nil
 }

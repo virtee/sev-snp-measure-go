@@ -15,10 +15,10 @@ import (
 	"os"
 	"testing"
 
-	"github.com/virtee/sev-snp-measure-go/ovmf"
-	"github.com/virtee/sev-snp-measure-go/vmmtypes"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/virtee/sev-snp-measure-go/ovmf"
+	"github.com/virtee/sev-snp-measure-go/vmmtypes"
 )
 
 // TestLaunchDigestFromOVMF tests if the correct hashes are calculated when using a OVMF image as input.
@@ -55,7 +55,7 @@ func TestLaunchDigestFromOVMF(t *testing.T) {
 			hash, err := hex.DecodeString(tc.ovmfHash)
 			require.NoError(err)
 
-			ovmfObj, err := ovmf.New(tc.ovmfPath)
+			ovmfObj, err := ovmf.New(tc.ovmfPath, 0)
 			require.NoError(err)
 
 			launchDigest, err := LaunchDigestFromOVMF(ovmfObj, 0x1, tc.vcpuCount, hash, vmmtypes.EC2, "")
@@ -138,7 +138,7 @@ func TestOVMFHash(t *testing.T) {
 			expectedHash, err := hex.DecodeString(tc.ovmfHash)
 			require.NoError(err)
 
-			ovmfObj, err := ovmf.New(tc.ovmfPath)
+			ovmfObj, err := ovmf.New(tc.ovmfPath, 0)
 			require.NoError(err)
 
 			hash, err := OVMFHash(ovmfObj)
