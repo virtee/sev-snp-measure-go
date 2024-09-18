@@ -184,16 +184,16 @@ func BuildSaveArea(eip uint32, guestFeatures uint64, vcpuSig uint64, vmmType vmm
 		Idtr:        VmcbSeg{0, 0, 0xffff, 0},
 		Ldtr:        VmcbSeg{0, 0x82, 0xffff, 0},
 		Tr:          VmcbSeg{0, trFlags, 0xffff, 0},
-		Efer:        0x1000,
-		Cr4:         0x40,
+		Efer:        0x1000, // KVM enables EFER_SVME.
+		Cr4:         0x40,   // KVM enables X86_CR4_MCE.
 		Cr0:         0x10,
 		Dr7:         0x400,
 		Dr6:         0xffff0ff0,
 		Rflags:      0x2,
 		Rip:         uint64(eip & 0xffff),
-		GPat:        0x7040600070406,
+		GPat:        0x7040600070406, // PAT MSR: See AMD APM Vol 2, Section A.3.
 		Rdx:         rdx,
-		SevFeatures: guestFeatures,
+		SevFeatures: guestFeatures, // Documentation: https://github.com/virtee/sev-snp-measure/pull/32/files#diff-b335630551682c19a781afebcf4d07bf978fb1f8ac04c6bf87428ed5106870f5R125.
 		Xcr0:        0x1,
 		Mxcsr:       mxcsr,
 		X87Fcw:      fcw,
