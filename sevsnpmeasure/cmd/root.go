@@ -42,11 +42,11 @@ var (
 
 // Execute executes the root command.
 func Execute() error {
-	return newRootCmd().Execute()
+	return NewRootCmd().Execute()
 }
 
 // newRootCmd creates the root command.
-func newRootCmd() *cobra.Command {
+func NewRootCmd() *cobra.Command {
 	rootCmd := &cobra.Command{
 		Use:   "sevsnpmeasure",
 		Short: "Calculate AMD SEV/SEV-ES/SEV-SNP guest launch measurement",
