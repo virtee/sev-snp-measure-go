@@ -11,9 +11,9 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/spf13/cobra"
 	"github.com/virtee/sev-snp-measure-go/guest"
 	"github.com/virtee/sev-snp-measure-go/ovmf"
-	"github.com/spf13/cobra"
 )
 
 func NewParseCmd() *cobra.Command {
@@ -31,7 +31,7 @@ func NewParseCmd() *cobra.Command {
 }
 
 func parseMetadata(cmd *cobra.Command, args []string) error {
-	ovmfObj, err := ovmf.New(args[0])
+	ovmfObj, err := ovmf.New(args[0], 0)
 	if err != nil {
 		return fmt.Errorf("creating OVMF object: %w", err)
 	}

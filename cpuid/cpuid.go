@@ -7,7 +7,7 @@ SPDX-License-Identifier: Apache-2.0
 
 package cpuid
 
-func cpuSig(family int, model int, stepping int) int {
+func CpuSig(family int, model int, stepping int) int {
 	var familyLow, familyHigh, modelLow, modelHigh, steppingLow int
 
 	if family > 0xf {
@@ -31,19 +31,19 @@ func cpuSig(family int, model int, stepping int) int {
 }
 
 var CpuSigs = map[string]int{
-	"EPYC":          cpuSig(23, 1, 2),
-	"EPYC-v1":       cpuSig(23, 1, 2),
-	"EPYC-v2":       cpuSig(23, 1, 2),
-	"EPYC-IBPB":     cpuSig(23, 1, 2),
-	"EPYC-v3":       cpuSig(23, 1, 2),
-	"EPYC-v4":       cpuSig(23, 1, 2),
-	"EPYC-Rome":     cpuSig(23, 49, 0),
-	"EPYC-Rome-v1":  cpuSig(23, 49, 0),
-	"EPYC-Rome-v2":  cpuSig(23, 49, 0),
-	"EPYC-Rome-v3":  cpuSig(23, 49, 0),
-	"EPYC-Milan":    cpuSig(25, 1, 1),
-	"EPYC-Milan-v1": cpuSig(25, 1, 1),
-	"EPYC-Milan-v2": cpuSig(25, 1, 1),
-	"EPYC-Genoa":    cpuSig(25, 17, 0),
-	"EPYC-Genoa-v1": cpuSig(25, 17, 0),
+	"EPYC":          CpuSig(23, 1, 2),
+	"EPYC-v1":       CpuSig(23, 1, 2),
+	"EPYC-v2":       CpuSig(23, 1, 2),
+	"EPYC-IBPB":     CpuSig(23, 1, 2),
+	"EPYC-v3":       CpuSig(23, 1, 2),
+	"EPYC-v4":       CpuSig(23, 1, 2),
+	"EPYC-Rome":     CpuSig(23, 49, 0),
+	"EPYC-Rome-v1":  CpuSig(23, 49, 0),
+	"EPYC-Rome-v2":  CpuSig(23, 49, 0),
+	"EPYC-Rome-v3":  CpuSig(23, 49, 0),
+	"EPYC-Milan":    CpuSig(25, 1, 1),
+	"EPYC-Milan-v1": CpuSig(25, 1, 1),
+	"EPYC-Milan-v2": CpuSig(25, 1, 1),
+	"EPYC-Genoa":    CpuSig(25, 17, 0),
+	"EPYC-Genoa-v1": CpuSig(25, 17, 0),
 }
