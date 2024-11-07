@@ -159,7 +159,7 @@ func (o *MetadataSection) SectionType() (SectionType, error) {
 	st := SectionType(o.SectionTypeInt)
 
 	switch st {
-	case SNPSECMEM, SNPSecrets, CPUID, SNPKernelHashes:
+	case SNPSECMEM, SNPSecrets, CPUID, SNPKernelHashes, SVSMCAA:
 		return st, nil
 	default:
 		return -1, fmt.Errorf("unknown OVMF metadata section type: %d", st)
