@@ -122,7 +122,7 @@ func NewRootCmd() *cobra.Command {
 
 	rootCmd.Flags().StringVarP(&mode, "mode", "m", "", "Guest mode, either 'snp', 'seves', 'sev', 'snp:ovmf-hash' or 'snp:svsm'.")
 	rootCmd.MarkFlagRequired("mode")
-	rootCmd.Flags().IntVarP(&vcpus, "vcpus", "v", 0, "Number of guest vCPUs.")
+	rootCmd.Flags().IntVar(&vcpus, "vcpus", 0, "Number of guest vCPUs.")
 	rootCmd.Flags().StringVarP(&vcpuType, "vcpu-type", "t", "", "Guest vCPU type")
 	rootCmd.Flags().StringVarP(&ovmfFile, "ovmf", "o", "", "Path to OVMF binary.")
 	rootCmd.MarkFlagRequired("ovmf")
