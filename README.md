@@ -37,6 +37,15 @@ Run linter:
 golangci-lint run ./...
 ```
 
+# Style
+
+Please make sure that the content of files follows this order (sorted from top to bottom):
+- Constants and variables
+- Exported functions
+- Exported types followed by their new funcs, exported methods, and unexported methods, i.e.
+- Unexported functions
+- Unexported types and their methods
+
 # Used by
 
 This tool was originally developed for [Constellation](https://github.com/edgelesssys/constellation) to verify launch measurements on AWS's SNP instances.
