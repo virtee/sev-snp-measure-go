@@ -1,0 +1,12 @@
+{
+    // Use gofumpt as formatter.
+    "gopls": {
+        "formatting.gofumpt": true,
+        "build.buildFlags": ["-tags", "e2e"]
+    },
+    // Use golangci-lint as linter. Make sure you've installed it.
+    "go.lintTool": "golangci-lint",
+    "go.lintFlags": [
+        "--fast"
+    ]
+}
