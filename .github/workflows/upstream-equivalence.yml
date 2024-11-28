@@ -1,4 +1,4 @@
-name: Upstream Equivalence
+name: "Test: upstream Equivalence"
 
 on:
   workflow_dispatch:
@@ -7,15 +7,21 @@ on:
     # We want to learn somewhat quickly about changes in upstream.
     # But we do not expect changes on a regular basis.
     - cron: '0 22 * * 1,3,5'
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: read
 
 jobs:
   run:
     runs-on: ubuntu-22.04
     steps:
-    - name: Checkout repository
+    - name: Checkout sev-snp-measure-go
       uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
       with:
         ref: ${{ github.head_ref }}
+
     - name: Install necessary tools
       run: |
         sudo apt-get update
@@ -52,17 +58,18 @@ jobs:
         ovmfPath=$(realpath result/ovmf_img.fd)
         echo "ovmfPath=${ovmfPath}" | tee -a "$GITHUB_OUTPUT"
 
-
-    - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+    - name: Checkout sev-snp-measure
+      uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
       with:
         repository: virtee/sev-snp-measure.git
         ref: main
         path: sev-snp-measure
 
-    - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+    - name: Checkout sev-snp-measure-go in subdir
+      uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
       with:
         repository: virtee/sev-snp-measure-go.git
-        ref: ${{ github.ref_name }}
+        ref: ${{ github.head_ref }}
         path: sev-snp-measure-go
 
     - name: Run sev-snp-measure
