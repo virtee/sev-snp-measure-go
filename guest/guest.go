@@ -50,7 +50,7 @@ func launchDigest(metadata []ovmf.MetadataSection, resetEIP uint32, guestFeature
 
 	vcpu_sig, ok := cpuid.CpuSigs[vcpu_type]
 	if !ok {
-		fmt.Println("Failed to find VCPU signature for %s", vcpu_type)
+		fmt.Printf("Failed to find VCPU signature for vcpu_type %s\n", vcpu_type)
 		vcpu_sig = 0
 	}
 
