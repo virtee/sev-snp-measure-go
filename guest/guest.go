@@ -63,6 +63,50 @@ func LaunchDigestFromOVMF(ovmfObj ovmf.OVMF, guestFeatures uint64, vcpuCount int
 	return launchDigest(ovmfObj.MetadataItems(), resetEIP, guestFeatures, vcpuCount, ovmfHash, vmmtype, vcpu_type)
 }
 
+func CalcLaunchDigest(mode SevMode, vcpus int, vcpuSig uint64, ovmfFile string,
+	kernel string, initrd string, append string, guestFeatures uint64, snpOvmfHashStr string,
+	vmmType vmmtypes.VMMType, dumpVMSA bool, svsmFile string,
+	ovmfVarsSize int,
+) ([]byte, error) {
+	switch mode {
+	case SEV_SNP:
+		return snpCalcLaunchDigest(vcpus, vcpuSig, ovmfFile, kernel, initrd, append, guestFeatures,
+			snpOvmfHashStr, vmmType, dumpVMSA)
+	case SEV_ES:
+		return sevesCalcLaunchDigest(vcpus, vcpuSig, ovmfFile, kernel, initrd, append, vmmType, dumpVMSA)
+	case SEV:
+		return sevCalcLaunchDigest(ovmfFile, kernel, initrd, append)
+	case SEV_SNP_SVSM:
+		if vmmType != vmmtypes.QEMU {
+			return nil, errors.New("SVSM mode is only implemented for QEMU")
+		}
+		return svsmCalcLaunchDigest(vcpus, vcpuSig, ovmfFile, ovmfVarsSize, svsmFile, dumpVMSA)
+	default:
+		return nil, errors.New("unknown SEV mode")
+	}
+}
+
+func CalcSnpOvmfHash(ovmfFile string) ([]byte, error) {
+	ovmfObj, err := ovmf.New(ovmfFile, 0)
+	if err != nil {
+		return nil, err
+	}
+
+	gctx := gctx.New(nil)
+	if err := gctx.UpdateNormalPages(uint64(ovmfObj.GPA()), ovmfObj.Data()); err != nil {
+		return nil, err
+	}
+	return gctx.LD(), nil
+}
+
+func OVMFHash(ovmfObj ovmf.OVMF) ([]byte, error) {
+	gctx := gctx.New(nil)
+	if err := gctx.UpdateNormalPages(uint64(ovmfObj.GPA()), ovmfObj.Data()); err != nil {
+		return nil, fmt.Errorf("updating normal pages: %w", err)
+	}
+	return gctx.LD(), nil
+}
+
 // launchDigest calculates the launch digest from metadata and ovmfHash for a SNP guest.
 func launchDigest(metadata []ovmf.MetadataSection, resetEIP uint32, guestFeatures uint64, vcpuCount int, ovmfHash []byte, vmmtype vmmtypes.VMMType, vcpu_type string) ([]byte, error) {
 	guestCtx := gctx.New(ovmfHash)
@@ -95,29 +139,6 @@ func launchDigest(metadata []ovmf.MetadataSection, resetEIP uint32, guestFeature
 		}
 	}
 	return guestCtx.LD(), nil
-}
-
-func CalcLaunchDigest(mode SevMode, vcpus int, vcpuSig uint64, ovmfFile string,
-	kernel string, initrd string, append string, guestFeatures uint64, snpOvmfHashStr string,
-	vmmType vmmtypes.VMMType, dumpVMSA bool, svsmFile string,
-	ovmfVarsSize int,
-) ([]byte, error) {
-	switch mode {
-	case SEV_SNP:
-		return snpCalcLaunchDigest(vcpus, vcpuSig, ovmfFile, kernel, initrd, append, guestFeatures,
-			snpOvmfHashStr, vmmType, dumpVMSA)
-	case SEV_ES:
-		return sevesCalcLaunchDigest(vcpus, vcpuSig, ovmfFile, kernel, initrd, append, vmmType, dumpVMSA)
-	case SEV:
-		return sevCalcLaunchDigest(ovmfFile, kernel, initrd, append)
-	case SEV_SNP_SVSM:
-		if vmmType != vmmtypes.QEMU {
-			return nil, errors.New("SVSM mode is only implemented for QEMU")
-		}
-		return svsmCalcLaunchDigest(vcpus, vcpuSig, ovmfFile, ovmfVarsSize, svsmFile, dumpVMSA)
-	default:
-		return nil, errors.New("unknown SEV mode")
-	}
 }
 
 func snpUpdateKernelHashes(gctx *gctx.GCTX, ovmf ovmf.OVMF, sevHashes *sevhashes.SevHashes, gpa uint64, size int) error {
@@ -188,19 +209,6 @@ func snpUpdateMetadataPages(gctx *gctx.GCTX, ovmfObj ovmf.OVMF, sevHashes *sevha
 	}
 
 	return nil
-}
-
-func CalcSnpOvmfHash(ovmfFile string) ([]byte, error) {
-	ovmfObj, err := ovmf.New(ovmfFile, 0)
-	if err != nil {
-		return nil, err
-	}
-
-	gctx := gctx.New(nil)
-	if err := gctx.UpdateNormalPages(uint64(ovmfObj.GPA()), ovmfObj.Data()); err != nil {
-		return nil, err
-	}
-	return gctx.LD(), nil
 }
 
 func snpCalcLaunchDigest(vcpus int, vcpuSig uint64, ovmfFile string,
@@ -397,12 +405,4 @@ func sevCalcLaunchDigest(ovmfFile string, kernel string, initrd string, append s
 
 func dumpVMSAPage(page []byte, index int) error {
 	return os.WriteFile(fmt.Sprintf("vmsa%d.bin", index), page, 0o644)
-}
-
-func OVMFHash(ovmfObj ovmf.OVMF) ([]byte, error) {
-	gctx := gctx.New(nil)
-	if err := gctx.UpdateNormalPages(uint64(ovmfObj.GPA()), ovmfObj.Data()); err != nil {
-		return nil, fmt.Errorf("updating normal pages: %w", err)
-	}
-	return gctx.LD(), nil
 }

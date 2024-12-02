@@ -36,7 +36,52 @@ const (
 	SEV_HASH_TABLE_RV_GUID  = "7255371f-3a3b-4b04-927b-1da6efa8d454"
 	SEV_ES_RESET_BLOCK_GUID = "00f771de-1a7e-4fcb-890e-68c77e2fb44e"
 	OVMF_SEV_META_DATA_GUID = "dc886566-984a-4798-a75e-5585a7bf67cc"
+	SVSMInfoGUID            = "a789a612-0597-4c4b-a49f-cbb1fe9d1ddd"
 )
+
+func New(filename string, endAt int) (OVMF, error) {
+	if endAt == 0 {
+		endAt = FOUR_GB
+	}
+
+	ovmf := OVMF{
+		endAt: endAt,
+	}
+
+	file, err := os.Open(filename)
+	if err != nil {
+		return OVMF{}, err
+	}
+	defer file.Close()
+
+	data, err := io.ReadAll(file)
+	if err != nil {
+		return OVMF{}, err
+	}
+
+	ovmf.data = data
+
+	err = ovmf.parseFooterTable()
+	if err != nil {
+		return OVMF{}, fmt.Errorf("parsing footer table: %w", err)
+	}
+
+	err = ovmf.parseSevMetadata()
+	if err != nil {
+		return OVMF{}, fmt.Errorf("parsing SEV metadata: %w", err)
+	}
+
+	return ovmf, nil
+}
+
+func LittleEndianBytes(bytes [16]byte) [16]byte {
+	part1 := reverseBytes(bytes[:4])
+	part2 := reverseBytes(bytes[4:6])
+	part3 := reverseBytes(bytes[6:8])
+	part4 := bytes[8:]
+
+	return [16]byte(append(append(append(part1, part2...), part3...), part4...))
+}
 
 type FooterTableEntry struct {
 	Size uint16
@@ -279,41 +324,6 @@ func NewFromMetadataItems(metadataItems []MetadataSection) OVMF {
 	}
 }
 
-func New(filename string, endAt int) (OVMF, error) {
-	if endAt == 0 {
-		endAt = FOUR_GB
-	}
-
-	ovmf := OVMF{
-		endAt: endAt,
-	}
-
-	file, err := os.Open(filename)
-	if err != nil {
-		return OVMF{}, err
-	}
-	defer file.Close()
-
-	data, err := io.ReadAll(file)
-	if err != nil {
-		return OVMF{}, err
-	}
-
-	ovmf.data = data
-
-	err = ovmf.parseFooterTable()
-	if err != nil {
-		return OVMF{}, fmt.Errorf("parsing footer table: %w", err)
-	}
-
-	err = ovmf.parseSevMetadata()
-	if err != nil {
-		return OVMF{}, fmt.Errorf("parsing SEV metadata: %w", err)
-	}
-
-	return ovmf, nil
-}
-
 func (o *OVMF) Data() []byte {
 	return o.data
 }
@@ -466,28 +476,6 @@ func (o *OVMF) parseSevMetadata() error {
 	return nil
 }
 
-func LittleEndianBytes(bytes [16]byte) [16]byte {
-	part1 := reverseBytes(bytes[:4])
-	part2 := reverseBytes(bytes[4:6])
-	part3 := reverseBytes(bytes[6:8])
-	part4 := bytes[8:]
-
-	return [16]byte(append(append(append(part1, part2...), part3...), part4...))
-}
-
-func reverseBytes(bytes []byte) []byte {
-	length := len(bytes)
-	reversed := make([]byte, length)
-	for i := range bytes {
-		reversed[i] = bytes[length-i-1]
-	}
-	return reversed
-}
-
-const (
-	SVSMInfoGUID = "a789a612-0597-4c4b-a49f-cbb1fe9d1ddd"
-)
-
 type SVSM struct {
 	OVMF
 }
@@ -506,4 +494,13 @@ func (s *SVSM) SevEsResetEip() (uint32, error) {
 		return 0, errors.New("can't find SVSM_INFO_GUID entry in SVSM table")
 	}
 	return binary.LittleEndian.Uint32(entry[:4]) + uint32(s.GPA()), nil
+}
+
+func reverseBytes(bytes []byte) []byte {
+	length := len(bytes)
+	reversed := make([]byte, length)
+	for i := range bytes {
+		reversed[i] = bytes[length-i-1]
+	}
+	return reversed
 }

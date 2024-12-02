@@ -22,6 +22,43 @@ var (
 	SEV_CMDLINE_ENTRY_GUID     = "97d02dd8-bd20-4c94-aa78-e7714d36ab2a"
 )
 
+func New(kernel, initrd, append string) (*SevHashes, error) {
+	sh := &SevHashes{}
+
+	kernelHash, err := hashFile(kernel)
+	if err != nil {
+		return nil, err
+	}
+	sh.KernelHash = kernelHash
+
+	if initrd != "" {
+		initrdHash, err := hashFile(initrd)
+		if err != nil {
+			return nil, err
+		}
+		sh.InitrdHash = initrdHash
+	}
+
+	var cmdline []byte
+	if append != "" {
+		cmdline = []byte(append + "\x00")
+	} else {
+		cmdline = []byte{0}
+	}
+	sh.CmdlineHash = sha256.Sum256(cmdline)
+
+	return sh, nil
+}
+
+func NewPaddedSevHashTable(ht SevHashTable) PaddedSevHashTable {
+	size := sizeofStruct(ht)
+	paddingSize := (size+15) & ^15 - size
+	return PaddedSevHashTable{
+		Ht:      ht,
+		Padding: make([]byte, paddingSize),
+	}
+}
+
 type GuidLe [16]byte
 
 func (g *GuidLe) FromStr(guidStr string) {
@@ -54,64 +91,6 @@ type SevHashes struct {
 	KernelHash  Sha256Hash
 	InitrdHash  Sha256Hash
 	CmdlineHash Sha256Hash
-}
-
-func New(kernel, initrd, append string) (*SevHashes, error) {
-	sh := &SevHashes{}
-
-	kernelHash, err := hashFile(kernel)
-	if err != nil {
-		return nil, err
-	}
-	sh.KernelHash = kernelHash
-
-	if initrd != "" {
-		initrdHash, err := hashFile(initrd)
-		if err != nil {
-			return nil, err
-		}
-		sh.InitrdHash = initrdHash
-	}
-
-	var cmdline []byte
-	if append != "" {
-		cmdline = []byte(append + "\x00")
-	} else {
-		cmdline = []byte{0}
-	}
-	sh.CmdlineHash = sha256.Sum256(cmdline)
-
-	return sh, nil
-}
-
-func hashFile(filename string) (Sha256Hash, error) {
-	f, err := os.Open(filename)
-	if err != nil {
-		return Sha256Hash{}, err
-	}
-	defer f.Close()
-
-	h := sha256.New()
-	if _, err := io.Copy(h, f); err != nil {
-		return Sha256Hash{}, err
-	}
-
-	var hash Sha256Hash
-	copy(hash[:], h.Sum(nil))
-	return hash, nil
-}
-
-func sizeofStruct(v interface{}) int {
-	return int(reflect.TypeOf(v).Size())
-}
-
-func NewPaddedSevHashTable(ht SevHashTable) PaddedSevHashTable {
-	size := sizeofStruct(ht)
-	paddingSize := (size+15) & ^15 - size
-	return PaddedSevHashTable{
-		Ht:      ht,
-		Padding: make([]byte, paddingSize),
-	}
 }
 
 func (sh *SevHashes) ConstructTable() []byte {
@@ -187,4 +166,25 @@ func toBytesLE(data interface{}) []byte {
 
 	writeField(v)
 	return buf.Bytes()
+}
+
+func sizeofStruct(v interface{}) int {
+	return int(reflect.TypeOf(v).Size())
+}
+
+func hashFile(filename string) (Sha256Hash, error) {
+	f, err := os.Open(filename)
+	if err != nil {
+		return Sha256Hash{}, err
+	}
+	defer f.Close()
+
+	h := sha256.New()
+	if _, err := io.Copy(h, f); err != nil {
+		return Sha256Hash{}, err
+	}
+
+	var hash Sha256Hash
+	copy(hash[:], h.Sum(nil))
+	return hash, nil
 }
