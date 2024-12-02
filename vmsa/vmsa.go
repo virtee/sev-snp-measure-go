@@ -210,9 +210,13 @@ func New(apEip uint32, guestFeatures uint64, vcpuSig uint64, vmmType vmmtypes.VM
 	if err != nil {
 		return VMSA{}, err
 	}
-	apSaveArea, err := BuildSaveArea(apEip, guestFeatures, vcpuSig, vmmType)
-	if err != nil {
-		return VMSA{}, err
+	var apSaveArea SevEsSaveArea
+	if apEip != 0 {
+		apSaveArea, err = BuildSaveArea(apEip, guestFeatures, vcpuSig, vmmType)
+
+		if err != nil {
+			return VMSA{}, err
+		}
 	}
 	return VMSA{BspSaveArea: bspSaveArea, ApSaveArea: apSaveArea}, nil
 }

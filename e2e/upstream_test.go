@@ -21,11 +21,11 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/virtee/sev-snp-measure-go/guest"
 	"github.com/virtee/sev-snp-measure-go/ovmf"
 	"github.com/virtee/sev-snp-measure-go/vmmtypes"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -47,7 +47,7 @@ func TestCompatibility(t *testing.T) {
 	err = json.Unmarshal(values, &expectedValues)
 	require.NoError(err, "unmarshalling values file: %s", err)
 
-	ovmfObj, err := ovmf.New(*binaryPath)
+	ovmfObj, err := ovmf.New(*binaryPath, 0)
 	require.NoError(err, "creating OVMF object from: %s", err)
 
 	for _, entry := range expectedValues {
