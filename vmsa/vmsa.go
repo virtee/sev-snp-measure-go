@@ -53,12 +53,12 @@ type SevEsSaveArea struct {
 	Vmpl2Ssp         uint64
 	Vmpl3Ssp         uint64
 	UCet             uint64
-	Reserved1        [2]uint8
+	Reserved_0xc8    [2]uint8
 	Vmpl             uint8
 	Cpl              uint8
-	Reserved2        [4]uint8
+	Reserved_0xcc    [4]uint8
 	Efer             uint64
-	Reserved3        [104]uint8
+	Reserved_0xd8    [104]uint8
 	Xss              uint64
 	Cr4              uint64
 	Cr3              uint64
@@ -75,7 +75,7 @@ type SevEsSaveArea struct {
 	Dr1AddrMask      uint64
 	Dr2AddrMask      uint64
 	Dr3AddrMask      uint64
-	Reserved4        [24]uint8
+	Reserved_0x1c0   [24]uint8
 	Rsp              uint64
 	SCet             uint64
 	Ssp              uint64
@@ -90,21 +90,21 @@ type SevEsSaveArea struct {
 	SysenterEsp      uint64
 	SysenterEip      uint64
 	Cr2              uint64
-	Reserved5        [32]uint8
+	Reserved_0x248   [32]uint8
 	GPat             uint64
 	Dbgctrl          uint64
 	BrFrom           uint64
 	BrTo             uint64
 	LastExcpFrom     uint64
 	LastExcpTo       uint64
-	Reserved7        [80]uint8
+	Reserved_0x298   [80]uint8
 	Pkru             uint32
-	Reserved8        [20]uint8
-	Reserved9        uint64
+	TscAux           uint32
+	Reserved_0x2f0   [24]uint8
 	Rcx              uint64
 	Rdx              uint64
 	Rbx              uint64
-	Reserved10       uint64
+	Reserved_0x320   uint64
 	Rbp              uint64
 	Rsi              uint64
 	Rdi              uint64
@@ -116,7 +116,7 @@ type SevEsSaveArea struct {
 	R13              uint64
 	R14              uint64
 	R15              uint64
-	Reserved11       [16]uint8
+	Reserved_0x380   [16]uint8
 	GuestExitInfo1   uint64
 	GuestExitInfo2   uint64
 	GuestExitIntInfo uint64
@@ -129,31 +129,36 @@ type SevEsSaveArea struct {
 	PcpuId           uint64
 	EventInj         uint64
 	Xcr0             uint64
-	Reserved12       [16]uint8
-	X87Dp            uint64
-	Mxcsr            uint32
-	X87Ftw           uint16
-	X87Fsw           uint16
-	X87Fcw           uint16
-	X87Fop           uint16
-	X87Ds            uint16
-	X87Cs            uint16
-	X87Rip           uint64
-	FpregX87         [80]uint8
-	FpregXmm         [256]uint8
-	FpregYmm         [256]uint8
-	Unused           [2448]uint8
+	Reserved_0x3f0   [16]uint8
+
+	/* Floating Point Area */
+	X87Dp          uint64
+	Mxcsr          uint32
+	X87Ftw         uint16
+	X87Fsw         uint16
+	X87Fcw         uint16
+	X87Fop         uint16
+	X87Ds          uint16
+	X87Cs          uint16
+	X87Rip         uint64
+	FpregX87       [80]uint8
+	FpregXmm       [256]uint8
+	FpregYmm       [256]uint8
+	manual_padding [2448]uint8 //nolint:unused
 }
 
 func BuildSaveArea(eip uint32, guestFeatures uint64, vcpuSig uint64, vmmType vmmtypes.VMMType) (SevEsSaveArea, error) {
-	var csFlags, ssFlags, trFlags uint16
+	var csFlags, ssFlags, trFlags, fcw uint16
 	var rdx uint64
+	var mxcsr uint32
 	switch vmmType {
 	case vmmtypes.QEMU:
 		csFlags = 0x9b
 		ssFlags = 0x93
 		trFlags = 0x8b
 		rdx = vcpuSig
+		mxcsr = 0x1f80
+		fcw = 0x37f
 	case vmmtypes.EC2:
 		csFlags = 0x9b
 		if eip == 0xfffffff0 {
@@ -162,6 +167,8 @@ func BuildSaveArea(eip uint32, guestFeatures uint64, vcpuSig uint64, vmmType vmm
 		ssFlags = 0x92
 		trFlags = 0x83
 		rdx = 0
+		mxcsr = 0
+		fcw = 0
 	default:
 		return SevEsSaveArea{}, errors.New("unknown VMM type")
 	}
@@ -187,6 +194,8 @@ func BuildSaveArea(eip uint32, guestFeatures uint64, vcpuSig uint64, vmmType vmm
 		Rdx:         rdx,
 		SevFeatures: guestFeatures, // Documentation: https://github.com/virtee/sev-snp-measure/pull/32/files#diff-b335630551682c19a781afebcf4d07bf978fb1f8ac04c6bf87428ed5106870f5R125.
 		Xcr0:        0x1,
+		Mxcsr:       mxcsr,
+		X87Fcw:      fcw,
 	}, nil
 }
 
