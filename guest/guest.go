@@ -79,7 +79,7 @@ func snpUpdateMetadataPages(gctx *gctx.GCTX, metadata []ovmf.MetadataSection, vm
 			return fmt.Errorf("getting sectionType: %w", err)
 		}
 		switch st {
-		case ovmf.SNPSECMEM:
+		case ovmf.SNPSECMEM, ovmf.SVSM_CAA:
 			if err := gctx.UpdateZeroPages(uint64(desc.GPA), int(desc.Size)); err != nil {
 				return fmt.Errorf("updating zero pages: %w", err)
 			}
