@@ -28,6 +28,7 @@ const (
 	SNPSECMEM SectionType = iota + 1
 	SNPSecrets
 	CPUID
+	SVSM_CAA
 	SNPKernelHashes SectionType = 0x10
 
 	FOUR_GB                 = 0x100000000
@@ -158,7 +159,7 @@ func (o *MetadataSection) SectionType() (SectionType, error) {
 	st := SectionType(o.SectionTypeInt)
 
 	switch st {
-	case SNPSECMEM, SNPSecrets, CPUID, SNPKernelHashes:
+	case SNPSECMEM, SNPSecrets, CPUID, SVSM_CAA, SNPKernelHashes:
 		return st, nil
 	default:
 		return -1, fmt.Errorf("unknown OVMF metadata section type: %d", st)
