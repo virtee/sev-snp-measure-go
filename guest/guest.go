@@ -19,17 +19,28 @@ import (
 )
 
 // LaunchDigestFromMetadataWrapper calculates a launch digest from a MetadataWrapper object.
-func LaunchDigestFromMetadataWrapper(wrapper ovmf.MetadataWrapper, guestFeatures uint64, vcpuCount int, vmmtype vmmtypes.VMMType, vcpu_type string) ([]byte, error) {
-	return launchDigest(wrapper.MetadataItems, wrapper.ResetEIP, guestFeatures, vcpuCount, wrapper.OVMFHash, vmmtype, vcpu_type)
+func LaunchDigestFromMetadataWrapper(wrapper ovmf.MetadataWrapper, guestFeatures uint64, vcpuCount int, vmmtype vmmtypes.VMMType, spec cpuid.CpuSpec) ([]byte, error) {
+	vcpuSig, err := cpuid.GetCpuSig(spec)
+	if err != nil {
+		return nil, err
+	}
+
+	return launchDigest(wrapper.MetadataItems, wrapper.ResetEIP, guestFeatures, vcpuCount, wrapper.OVMFHash, vmmtype, vcpuSig)
 }
 
 // LaunchDigestFromOVMF calculates a launch digest from an OVMF object and an ovmfHash.
-func LaunchDigestFromOVMF(ovmfObj ovmf.OVMF, guestFeatures uint64, vcpuCount int, ovmfHash []byte, vmmtype vmmtypes.VMMType, vcpu_type string) ([]byte, error) {
+func LaunchDigestFromOVMF(ovmfObj ovmf.OVMF, guestFeatures uint64, vcpuCount int, ovmfHash []byte, vmmtype vmmtypes.VMMType, spec cpuid.CpuSpec) ([]byte, error) {
 	resetEIP, err := ovmfObj.SevESResetEIP()
 	if err != nil {
 		return nil, fmt.Errorf("getting reset EIP: %w", err)
 	}
-	return launchDigest(ovmfObj.MetadataItems(), resetEIP, guestFeatures, vcpuCount, ovmfHash, vmmtype, vcpu_type)
+
+	vcpuSig, err := cpuid.GetCpuSig(spec)
+	if err != nil {
+		return nil, err
+	}
+
+	return launchDigest(ovmfObj.MetadataItems(), resetEIP, guestFeatures, vcpuCount, ovmfHash, vmmtype, vcpuSig)
 }
 
 func OVMFHash(ovmfObj ovmf.OVMF) ([]byte, error) {
@@ -41,17 +52,11 @@ func OVMFHash(ovmfObj ovmf.OVMF) ([]byte, error) {
 }
 
 // launchDigest calculates the launch digest from metadata and ovmfHash for a SNP guest.
-func launchDigest(metadata []ovmf.MetadataSection, resetEIP uint32, guestFeatures uint64, vcpuCount int, ovmfHash []byte, vmmtype vmmtypes.VMMType, vcpu_type string) ([]byte, error) {
+func launchDigest(metadata []ovmf.MetadataSection, resetEIP uint32, guestFeatures uint64, vcpuCount int, ovmfHash []byte, vmmtype vmmtypes.VMMType, vcpu_sig int) ([]byte, error) {
 	guestCtx := gctx.New(ovmfHash)
 
 	if err := snpUpdateMetadataPages(guestCtx, metadata, vmmtype); err != nil {
 		return nil, fmt.Errorf("updating metadata pages: %w", err)
-	}
-
-	vcpu_sig, ok := cpuid.CpuSigs[vcpu_type]
-	if !ok {
-		fmt.Printf("Failed to find VCPU signature for vcpu_type %s\n", vcpu_type)
-		vcpu_sig = 0
 	}
 
 	vmsaObj, err := vmsa.New(resetEIP, guestFeatures, uint64(vcpu_sig), vmmtype)
