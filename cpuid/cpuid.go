@@ -55,6 +55,7 @@ var CpuSigs = map[string]int{
 	"EPYC-Genoa":    cpuSig(25, 17, 0),
 	"EPYC-Genoa-v1": cpuSig(25, 17, 0),
 	"EPYC-Genoa-v2": cpuSig(25, 17, 0),
+	"EPYC-Turin":    cpuSig(26, 0, 0),
 }
 
 type CpuSpec struct {
