@@ -150,6 +150,7 @@ type SevEsSaveArea struct {
 func BuildSaveArea(eip uint32, guestFeatures uint64, vcpuSig uint64, vmmType vmmtypes.VMMType) (SevEsSaveArea, error) {
 	var csFlags, ssFlags, trFlags, fcw uint16
 	var rdx uint64
+	var gpat uint64 = 0x7040600070406 // PAT MSR: See AMD APM Vol 2, Section A.3.
 	var mxcsr uint32
 	switch vmmType {
 	case vmmtypes.QEMU:
@@ -169,6 +170,14 @@ func BuildSaveArea(eip uint32, guestFeatures uint64, vcpuSig uint64, vmmType vmm
 		rdx = 0
 		mxcsr = 0
 		fcw = 0
+	case vmmtypes.GCE:
+		csFlags = 0x9b
+		ssFlags = 0x93
+		trFlags = 0x8b
+		gpat = 0x00070106 // GCE hypervisor overwrites default g_pat
+		rdx = 0x600
+		mxcsr = 0
+		fcw = 0x0
 	default:
 		return SevEsSaveArea{}, errors.New("unknown VMM type")
 	}
@@ -190,7 +199,7 @@ func BuildSaveArea(eip uint32, guestFeatures uint64, vcpuSig uint64, vmmType vmm
 		Dr6:         0xffff0ff0,
 		Rflags:      0x2,
 		Rip:         uint64(eip & 0xffff),
-		GPat:        0x7040600070406, // PAT MSR: See AMD APM Vol 2, Section A.3.
+		GPat:        gpat,
 		Rdx:         rdx,
 		SevFeatures: guestFeatures, // Documentation: https://github.com/virtee/sev-snp-measure/pull/32/files#diff-b335630551682c19a781afebcf4d07bf978fb1f8ac04c6bf87428ed5106870f5R125.
 		Xcr0:        0x1,

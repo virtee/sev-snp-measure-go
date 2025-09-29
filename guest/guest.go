@@ -48,10 +48,10 @@ func launchDigest(metadata []ovmf.MetadataSection, resetEIP uint32, guestFeature
 		return nil, fmt.Errorf("updating metadata pages: %w", err)
 	}
 
-	// Allow empty vcpu_type for EC2 for backwards compatibility.
+	// Allow empty vcpu_type for EC2 and GCE for backwards compatibility.
 	// vcpuSig is ignored in BuildSaveArea.
 	// TODO: once the project has a release pipeline consider a major release to break the API.
-	if vmmtype == vmmtypes.EC2 {
+	if vmmtype == vmmtypes.EC2 || vmmtype == vmmtypes.GCE {
 		vcpu_type = "EPYC"
 	}
 
@@ -86,7 +86,17 @@ func snpUpdateMetadataPages(gctx *gctx.GCTX, metadata []ovmf.MetadataSection, vm
 			return fmt.Errorf("getting sectionType: %w", err)
 		}
 		switch st {
-		case ovmf.SNPSECMEM, ovmf.SVSM_CAA:
+		case ovmf.SNPSECMEM:
+			if vmmType == vmmtypes.GCE {
+				if err := gctx.UpdateUnmeasuredPages(uint64(desc.GPA), int(desc.Size)); err != nil {
+					return fmt.Errorf("updating unmeasured pages: %w", err)
+				}
+			} else {
+				if err := gctx.UpdateZeroPages(uint64(desc.GPA), int(desc.Size)); err != nil {
+					return fmt.Errorf("updating zero pages: %w", err)
+				}
+			}
+		case ovmf.SVSM_CAA:
 			if err := gctx.UpdateZeroPages(uint64(desc.GPA), int(desc.Size)); err != nil {
 				return fmt.Errorf("updating zero pages: %w", err)
 			}
