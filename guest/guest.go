@@ -18,18 +18,27 @@ import (
 	"github.com/virtee/sev-snp-measure-go/vmsa"
 )
 
+const PAGE_MASK = 0xfff
+
 // LaunchDigestFromMetadataWrapper calculates a launch digest from a MetadataWrapper object.
-func LaunchDigestFromMetadataWrapper(wrapper ovmf.MetadataWrapper, guestFeatures uint64, vcpuCount int, vmmtype vmmtypes.VMMType, vcpu_type string) ([]byte, error) {
-	return launchDigest(wrapper.MetadataItems, wrapper.ResetEIP, guestFeatures, vcpuCount, wrapper.OVMFHash, vmmtype, vcpu_type)
+func LaunchDigestFromMetadataWrapper(wrapper ovmf.MetadataWrapper, guestFeatures uint64, vcpuCount int, vmmtype vmmtypes.VMMType, vcpu_type string, kernel []byte, initrd []byte, cmdline string) ([]byte, error) {
+	return launchDigest(wrapper.MetadataItems, wrapper.ResetEIP, guestFeatures, vcpuCount, wrapper.OVMFHash, vmmtype, vcpu_type, kernel, initrd, cmdline, wrapper.SevHashesTableGPA)
 }
 
 // LaunchDigestFromOVMF calculates a launch digest from an OVMF object and an ovmfHash.
-func LaunchDigestFromOVMF(ovmfObj ovmf.OVMF, guestFeatures uint64, vcpuCount int, ovmfHash []byte, vmmtype vmmtypes.VMMType, vcpu_type string) ([]byte, error) {
+func LaunchDigestFromOVMF(ovmfObj ovmf.OVMF, guestFeatures uint64, vcpuCount int, ovmfHash []byte, vmmtype vmmtypes.VMMType, vcpu_type string, kernel []byte, initrd []byte, cmdline string) ([]byte, error) {
 	resetEIP, err := ovmfObj.SevESResetEIP()
 	if err != nil {
 		return nil, fmt.Errorf("getting reset EIP: %w", err)
 	}
-	return launchDigest(ovmfObj.MetadataItems(), resetEIP, guestFeatures, vcpuCount, ovmfHash, vmmtype, vcpu_type)
+
+	sevHashesTableGPA, err := ovmfObj.SevHashesTableGPA()
+	if err != nil {
+		// Non-fatal: older OVMF may not have this
+		sevHashesTableGPA = 0
+	}
+
+	return launchDigest(ovmfObj.MetadataItems(), resetEIP, guestFeatures, vcpuCount, ovmfHash, vmmtype, vcpu_type, kernel, initrd, cmdline, sevHashesTableGPA)
 }
 
 func OVMFHash(ovmfObj ovmf.OVMF) ([]byte, error) {
@@ -41,10 +50,19 @@ func OVMFHash(ovmfObj ovmf.OVMF) ([]byte, error) {
 }
 
 // launchDigest calculates the launch digest from metadata and ovmfHash for a SNP guest.
-func launchDigest(metadata []ovmf.MetadataSection, resetEIP uint32, guestFeatures uint64, vcpuCount int, ovmfHash []byte, vmmtype vmmtypes.VMMType, vcpu_type string) ([]byte, error) {
+func launchDigest(metadata []ovmf.MetadataSection, resetEIP uint32, guestFeatures uint64, vcpuCount int, ovmfHash []byte, vmmtype vmmtypes.VMMType, vcpu_type string, kernel []byte, initrd []byte, cmdline string, sevHashesTableGPA uint32) ([]byte, error) {
 	guestCtx := gctx.New(ovmfHash)
 
-	if err := snpUpdateMetadataPages(guestCtx, metadata, vmmtype); err != nil {
+	var sevHashes *ovmf.SevHashes
+	if kernel != nil {
+		var err error
+		sevHashes, err = ovmf.NewSevHashes(kernel, initrd, cmdline)
+		if err != nil {
+			return nil, fmt.Errorf("creating SevHashes: %w", err)
+		}
+	}
+
+	if err := snpUpdateMetadataPages(guestCtx, metadata, vmmtype, sevHashes, sevHashesTableGPA); err != nil {
 		return nil, fmt.Errorf("updating metadata pages: %w", err)
 	}
 
@@ -79,11 +97,15 @@ func launchDigest(metadata []ovmf.MetadataSection, resetEIP uint32, guestFeature
 	return guestCtx.LD(), nil
 }
 
-func snpUpdateMetadataPages(gctx *gctx.GCTX, metadata []ovmf.MetadataSection, vmmType vmmtypes.VMMType) error {
+func snpUpdateMetadataPages(gctx *gctx.GCTX, metadata []ovmf.MetadataSection, vmmType vmmtypes.VMMType, sevHashes *ovmf.SevHashes, sevHashesTableGPA uint32) error {
+	hasKernelHashesSection := false
 	for _, desc := range metadata {
 		st, err := desc.SectionType()
 		if err != nil {
 			return fmt.Errorf("getting sectionType: %w", err)
+		}
+		if st == ovmf.SNPKernelHashes {
+			hasKernelHashesSection = true
 		}
 		switch st {
 		case ovmf.SNPSECMEM:
@@ -110,9 +132,28 @@ func snpUpdateMetadataPages(gctx *gctx.GCTX, metadata []ovmf.MetadataSection, vm
 					return fmt.Errorf("updating cpuid page: %w", err)
 				}
 			}
+		case ovmf.SNPKernelHashes:
+			if sevHashes != nil {
+				offset := int(sevHashesTableGPA) & PAGE_MASK
+				page, err := sevHashes.ConstructPage(offset)
+				if err != nil {
+					return fmt.Errorf("constructing hash page: %w", err)
+				}
+				if err := gctx.UpdateNormalPages(uint64(desc.GPA), page); err != nil {
+					return fmt.Errorf("updating hash page: %w", err)
+				}
+			} else {
+				if err := gctx.UpdateZeroPages(uint64(desc.GPA), int(desc.Size)); err != nil {
+					return fmt.Errorf("updating zero pages: %w", err)
+				}
+			}
 		default:
 			return errors.New("unknown OVMF metadata section type")
 		}
+	}
+
+	if sevHashes != nil && !hasKernelHashesSection {
+		return errors.New("kernel specified but OVMF metadata doesn't include SNP_KERNEL_HASHES section")
 	}
 
 	if vmmType == vmmtypes.EC2 {
