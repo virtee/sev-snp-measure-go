@@ -48,13 +48,20 @@ func launchDigest(metadata []ovmf.MetadataSection, resetEIP uint32, guestFeature
 		return nil, fmt.Errorf("updating metadata pages: %w", err)
 	}
 
-	vcpu_sig, ok := cpuid.CpuSigs[vcpu_type]
-	if !ok {
-		fmt.Printf("Failed to find VCPU signature for vcpu_type %s\n", vcpu_type)
-		vcpu_sig = 0
+	// Allow empty vcpu_type for EC2 for backwards compatibility.
+	// vcpuSig is ignored in BuildSaveArea.
+	// TODO: once the project has a release pipeline consider a major release to break the API.
+	if vmmtype == vmmtypes.EC2 {
+		vcpu_type = "EPYC"
 	}
 
-	vmsaObj, err := vmsa.New(resetEIP, guestFeatures, uint64(vcpu_sig), vmmtype)
+	cpuSig, ok := cpuid.CpuSigs[vcpu_type]
+	if !ok {
+		return nil, fmt.Errorf("failed to find VCPU signature for vcpu_type %q", vcpu_type)
+	}
+	vcpuSig := uint64(cpuSig)
+
+	vmsaObj, err := vmsa.New(resetEIP, guestFeatures, vcpuSig, vmmtype)
 	if err != nil {
 		return nil, fmt.Errorf("creating VMSA: %w", err)
 	}
