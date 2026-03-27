@@ -61,15 +61,15 @@ jobs:
     - name: Checkout sev-snp-measure
       uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
       with:
-        repository: virtee/sev-snp-measure.git
+        repository: virtee/sev-snp-measure
         ref: main
         path: sev-snp-measure
 
     - name: Checkout sev-snp-measure-go in subdir
       uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
       with:
-        repository: virtee/sev-snp-measure-go.git
-        ref: ${{ github.head_ref }}
+        repository: virtee/sev-snp-measure-go
+        ref: ${{ github.head_ref || github.ref_name }}
         path: sev-snp-measure-go
 
     - name: Run sev-snp-measure
