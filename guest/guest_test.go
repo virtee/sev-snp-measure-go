@@ -15,11 +15,46 @@ import (
 	"os"
 	"testing"
 
-	"github.com/virtee/sev-snp-measure-go/ovmf"
-	"github.com/virtee/sev-snp-measure-go/vmmtypes"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/virtee/sev-snp-measure-go/ovmf"
+	"github.com/virtee/sev-snp-measure-go/vmmtypes"
 )
+
+func TestLaunchDigestCPUSignatureHandling(t *testing.T) {
+	wrapper := ovmf.MetadataWrapper{
+		MetadataItems: nil,
+		ResetEIP:      0,
+		OVMFHash:      nil,
+	}
+
+	testCases := map[string]struct {
+		vmmType           vmmtypes.VMMType
+		vcpuType          string
+		expectedErrSubstr string
+	}{
+		"ec2 ignores empty vcpu type": {
+			vmmType:  vmmtypes.EC2,
+			vcpuType: "",
+		},
+		"qemu rejects unknown vcpu type": {
+			vmmType:           vmmtypes.QEMU,
+			vcpuType:          "",
+			expectedErrSubstr: `failed to find VCPU signature for vcpu_type ""`,
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			_, err := LaunchDigestFromMetadataWrapper(wrapper, 0x1, 2, tc.vmmType, tc.vcpuType)
+			if tc.expectedErrSubstr == "" {
+				require.NoError(t, err)
+			} else {
+				require.ErrorContains(t, err, tc.expectedErrSubstr)
+			}
+		})
+	}
+}
 
 // TestLaunchDigestFromOVMF tests if the correct hashes are calculated when using a OVMF image as input.
 func TestLaunchDigestFromOVMF(t *testing.T) {
