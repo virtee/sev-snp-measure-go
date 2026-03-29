@@ -272,33 +272,41 @@ func NewFromAPIObject(apiObject MetadataWrapper) (OVMF, error) {
 	return ovmf, nil
 }
 
-func New(filename string) (OVMF, error) {
-	ovmf := OVMF{}
+func New(filename string) (ovmf OVMF, retErr error) {
+	ovmf = OVMF{}
 
 	file, err := os.Open(filename)
 	if err != nil {
-		return OVMF{}, err
+		retErr = err
+		return
 	}
-	defer file.Close()
+	defer func() {
+		if err := file.Close(); err != nil && retErr == nil {
+			retErr = err
+		}
+	}()
 
 	data, err := io.ReadAll(file)
 	if err != nil {
-		return OVMF{}, err
+		retErr = err
+		return
 	}
 
 	ovmf.data = data
 
 	err = ovmf.parseFooterTable()
 	if err != nil {
-		return OVMF{}, fmt.Errorf("parsing footer table: %w", err)
+		retErr = fmt.Errorf("parsing footer table: %w", err)
+		return
 	}
 
 	err = ovmf.parseSevMetadata()
 	if err != nil {
-		return OVMF{}, fmt.Errorf("parsing SEV metadata: %w", err)
+		retErr = fmt.Errorf("parsing SEV metadata: %w", err)
+		return
 	}
 
-	return ovmf, nil
+	return
 }
 
 func (o *OVMF) Data() []byte {
@@ -366,7 +374,7 @@ func (o *OVMF) parseFooterTable() error {
 		}
 
 		if entry.Size < uint16(entryHeaderSize) {
-			return errors.New("Invalid entry size")
+			return errors.New("invalid entry size")
 		}
 
 		guidLE := LittleEndianBytes(entry.Guid)
