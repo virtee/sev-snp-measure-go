@@ -15,17 +15,18 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
 	"strconv"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/virtee/sev-snp-measure-go/guest"
 	"github.com/virtee/sev-snp-measure-go/ovmf"
 	"github.com/virtee/sev-snp-measure-go/vmmtypes"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -48,8 +49,8 @@ func TestCompatibility(t *testing.T) {
 	guestFeatures, err := strconv.ParseUint(*guestFeaturesStr, 0, 64)
 	require.NoError(err, "parsing guest features: %s", err)
 
-	vmmType := parseVMMType(*vmmTypeStr)
-	require.NotEqual(vmmtypes.VMMType(-1), vmmType, "invalid vmm type: %s", *vmmTypeStr)
+	vmmType, err := parseVMMType(*vmmTypeStr)
+	require.NoError(err, "parsing vmm type: %s", err)
 
 	values, err := os.ReadFile(*valuesPath)
 	require.NoError(err, "reading values file: %s", err)
@@ -96,15 +97,15 @@ func (e *expectedValues) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func parseVMMType(vmmTypeStr string) vmmtypes.VMMType {
+func parseVMMType(vmmTypeStr string) (vmmtypes.VMMType, error) {
 	switch vmmTypeStr {
 	case "ec2":
-		return vmmtypes.EC2
+		return vmmtypes.EC2, nil
 	case "gce":
-		return vmmtypes.GCE
+		return vmmtypes.GCE, nil
 	case "qemu":
-		return vmmtypes.QEMU
+		return vmmtypes.QEMU, nil
 	default:
-		return -1
+		return 0, errors.New("unsupported vmm type")
 	}
 }
