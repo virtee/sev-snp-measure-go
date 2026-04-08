@@ -15,22 +15,26 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
 	"strconv"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/virtee/sev-snp-measure-go/guest"
 	"github.com/virtee/sev-snp-measure-go/ovmf"
 	"github.com/virtee/sev-snp-measure-go/vmmtypes"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 var (
 	valuesPath = flag.String("expected-values", "", "Path to json file containing hashes to compare against.")
 	binaryPath = flag.String("ovmf", "", "Path to OVMF binary that should be measured.")
+	// Documentation for guestFeaturesStr value: https://github.com/virtee/sev-snp-measure/pull/32/files#diff-b335630551682c19a781afebcf4d07bf978fb1f8ac04c6bf87428ed5106870f5R126.
+	guestFeaturesStr = flag.String("guest-features", "0x21", "Hex string representing the guest features to use for the measurement.")
+	vmmTypeStr       = flag.String("vmm-type", "ec2", "Corresponding VMM type for the expected values. Supported values for this flag are: ec2 (default), gce, and qemu.")
 )
 
 func TestCompatibility(t *testing.T) {
@@ -39,6 +43,14 @@ func TestCompatibility(t *testing.T) {
 
 	require.NotEmpty(*valuesPath, "expected-values flag must be set")
 	require.NotEmpty(*binaryPath, "ovmf flag must be set")
+	require.NotEmpty(*guestFeaturesStr, "guest-features cannot be empty")
+	require.NotEmpty(*vmmTypeStr, "vmm-type flag cannot be empty")
+
+	guestFeatures, err := strconv.ParseUint(*guestFeaturesStr, 0, 64)
+	require.NoError(err, "parsing guest features: %s", err)
+
+	vmmType, err := parseVMMType(*vmmTypeStr)
+	require.NoError(err, "parsing vmm type: %s", err)
 
 	values, err := os.ReadFile(*valuesPath)
 	require.NoError(err, "reading values file: %s", err)
@@ -54,8 +66,7 @@ func TestCompatibility(t *testing.T) {
 		ovmfHash, err := guest.OVMFHash(ovmfObj)
 		require.NoError(err, "calculating OVMF hash: %s", err)
 
-		// Documentation for guestFeatures value: https://github.com/virtee/sev-snp-measure/pull/32/files#diff-b335630551682c19a781afebcf4d07bf978fb1f8ac04c6bf87428ed5106870f5R126.
-		digest, err := guest.LaunchDigestFromOVMF(ovmfObj, 0x21, entry.vcpus, ovmfHash, vmmtypes.EC2, "")
+		digest, err := guest.LaunchDigestFromOVMF(ovmfObj, guestFeatures, entry.vcpus, ovmfHash, vmmType, "")
 		require.NoError(err, "calculating launch digest: %s", err)
 
 		assert.True(bytes.Equal(digest, entry.measurement), "expected hash %x, got %x", entry.measurement, digest)
@@ -84,4 +95,17 @@ func (e *expectedValues) UnmarshalJSON(data []byte) error {
 	e.vcpus = int(vcpus)
 	e.measurement = measurement
 	return nil
+}
+
+func parseVMMType(vmmTypeStr string) (vmmtypes.VMMType, error) {
+	switch vmmTypeStr {
+	case "ec2":
+		return vmmtypes.EC2, nil
+	case "gce":
+		return vmmtypes.GCE, nil
+	case "qemu":
+		return vmmtypes.QEMU, nil
+	default:
+		return 0, errors.New("unsupported vmm type")
+	}
 }

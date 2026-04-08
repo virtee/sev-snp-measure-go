@@ -124,6 +124,22 @@ func (g *GCTX) UpdateZeroPages(gpa uint64, lengthBytes int) error {
 	return nil
 }
 
+// UpdateUnmeasuredPages extends the current launch digest with the hash of a page containing only zeros. Pagetype is set to 0x04.
+func (g *GCTX) UpdateUnmeasuredPages(gpa uint64, lengthBytes int) error {
+	if lengthBytes%PAGE_SIZE != 0 {
+		return errors.New("invalid length")
+	}
+
+	offset := 0
+	for offset < lengthBytes {
+		if err := g.update(0x04, gpa+uint64(offset), bytes.Repeat([]byte{0x00}, LD_SIZE)); err != nil {
+			return fmt.Errorf("updating guest context: %w", err)
+		}
+		offset += PAGE_SIZE
+	}
+	return nil
+}
+
 // UpdateSecretsPage extends the current launch digest with the hash of a page containing only zeros. Pagetype is set to 0x05.
 func (g *GCTX) UpdateSecretsPage(gpa uint64) error {
 	return g.update(0x05, gpa, bytes.Repeat([]byte{0x00}, LD_SIZE))

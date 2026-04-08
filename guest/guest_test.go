@@ -37,6 +37,10 @@ func TestLaunchDigestCPUSignatureHandling(t *testing.T) {
 			vmmType:  vmmtypes.EC2,
 			vcpuType: "",
 		},
+		"gce ignores empty vcpu type": {
+			vmmType:  vmmtypes.GCE,
+			vcpuType: "",
+		},
 		"qemu rejects unknown vcpu type": {
 			vmmType:           vmmtypes.QEMU,
 			vcpuType:          "",
@@ -62,6 +66,7 @@ func TestLaunchDigestFromOVMF(t *testing.T) {
 		ovmfPath     string
 		ovmfHash     string
 		vcpuCount    int
+		vmmType      vmmtypes.VMMType
 		expectedHash string
 		wantErr      bool
 	}{
@@ -70,6 +75,7 @@ func TestLaunchDigestFromOVMF(t *testing.T) {
 			// Created by running: ./sev-snp-measure.py --mode snp:ovmf-hash --ovmf ovmf_img_1.fd
 			ovmfHash:  "a58211791a556a630a4319dc9e2ea96cc0e9784dd9f20a4fadf81b26c98d163fcdcb6703884bbbb80d7b1de45b3d84d0",
 			vcpuCount: 2,
+			vmmType:   vmmtypes.EC2,
 			// Created by running: ./sev-snp-measure.py --mode snp --vcpus 2 --ovmf ovmf_img_1.fd --vmm-type ec2 --snp-ovmf-hash a58211791a556a630a4319dc9e2ea96cc0e9784dd9f20a4fadf81b26c98d163fcdcb6703884bbbb80d7b1de45b3d84d0
 			expectedHash: "4c6e33087d08fa770259484dddbef367086a15c3e2cf10038dc97229d39c942671c2e22b300178f8de594a3f2fa59303",
 		},
@@ -78,7 +84,25 @@ func TestLaunchDigestFromOVMF(t *testing.T) {
 			// Created by running: ./sev-snp-measure.py --mode snp:ovmf-hash --ovmf ovmf_img_2.fd
 			ovmfHash:     "2027a27bb9f7acfd280e4c7bd68a73973b94bf0756e5b282e004b9395f597b8d0eb4defa7d8f6549375aa4d2b146f0f3",
 			vcpuCount:    2,
+			vmmType:      vmmtypes.EC2,
 			expectedHash: "c2c84b9364fc9f0f54b04534768c860c6e0e386ad98b96e8b98eca46ac8971d05c531ba48373f054c880cfd1f4a0a84e",
+		},
+		"success bin 3": {
+			ovmfPath: "testdata/ovmf_img_1.bin",
+			// Created by running: ./sev-snp-measure.py --mode snp:ovmf-hash --ovmf ovmf_img_1.fd
+			ovmfHash:  "a58211791a556a630a4319dc9e2ea96cc0e9784dd9f20a4fadf81b26c98d163fcdcb6703884bbbb80d7b1de45b3d84d0",
+			vcpuCount: 2,
+			vmmType:   vmmtypes.GCE,
+			// Created by running: ./sev-snp-measure.py --mode snp --vcpus 2 --ovmf ovmf_img_1.fd --vmm-type gce --snp-ovmf-hash a58211791a556a630a4319dc9e2ea96cc0e9784dd9f20a4fadf81b26c98d163fcdcb6703884bbbb80d7b1de45b3d84d0
+			expectedHash: "92dd082c6f938452733ef95413d5b023f4a30b249ef5e65c96f090f84c96419004636f5289aa7de3e7948625c64fa67c",
+		},
+		"success bin 4": {
+			ovmfPath: "testdata/ovmf_img_2.bin",
+			// Created by running: ./sev-snp-measure.py --mode snp:ovmf-hash --ovmf ovmf_img_2.fd
+			ovmfHash:     "2027a27bb9f7acfd280e4c7bd68a73973b94bf0756e5b282e004b9395f597b8d0eb4defa7d8f6549375aa4d2b146f0f3",
+			vcpuCount:    2,
+			vmmType:      vmmtypes.GCE,
+			expectedHash: "d0a87fc891933399c54853b455aef5dd348db04465cf726d891b2f5b3f95cd85f42d47236acde9cb29acc3b154d05ef8",
 		},
 	}
 
@@ -93,7 +117,7 @@ func TestLaunchDigestFromOVMF(t *testing.T) {
 			ovmfObj, err := ovmf.New(tc.ovmfPath)
 			require.NoError(err)
 
-			launchDigest, err := LaunchDigestFromOVMF(ovmfObj, 0x1, tc.vcpuCount, hash, vmmtypes.EC2, "")
+			launchDigest, err := LaunchDigestFromOVMF(ovmfObj, 0x1, tc.vcpuCount, hash, tc.vmmType, "")
 			if tc.wantErr {
 				assert.Error(err)
 			} else {
@@ -110,18 +134,33 @@ func TestLaunchDigestFromMetadataWrapper(t *testing.T) {
 	testCases := map[string]struct {
 		apiObjectPath  string
 		vcpuCount      int
+		vmmType        vmmtypes.VMMType
 		expectedDigest string
 		wantErr        bool
 	}{
 		"success bin 1": {
 			apiObjectPath:  "testdata/ovmf_img_1.json",
 			vcpuCount:      2,
+			vmmType:        vmmtypes.EC2,
 			expectedDigest: "4c6e33087d08fa770259484dddbef367086a15c3e2cf10038dc97229d39c942671c2e22b300178f8de594a3f2fa59303",
 		},
 		"success bin 2": {
 			apiObjectPath:  "testdata/ovmf_img_2.json",
 			vcpuCount:      2,
+			vmmType:        vmmtypes.EC2,
 			expectedDigest: "c2c84b9364fc9f0f54b04534768c860c6e0e386ad98b96e8b98eca46ac8971d05c531ba48373f054c880cfd1f4a0a84e",
+		},
+		"success bin 3": {
+			apiObjectPath:  "testdata/ovmf_img_1.json",
+			vcpuCount:      2,
+			vmmType:        vmmtypes.GCE,
+			expectedDigest: "92dd082c6f938452733ef95413d5b023f4a30b249ef5e65c96f090f84c96419004636f5289aa7de3e7948625c64fa67c",
+		},
+		"success bin 4": {
+			apiObjectPath:  "testdata/ovmf_img_2.json",
+			vcpuCount:      2,
+			vmmType:        vmmtypes.GCE,
+			expectedDigest: "d0a87fc891933399c54853b455aef5dd348db04465cf726d891b2f5b3f95cd85f42d47236acde9cb29acc3b154d05ef8",
 		},
 	}
 
@@ -137,7 +176,7 @@ func TestLaunchDigestFromMetadataWrapper(t *testing.T) {
 			err = json.Unmarshal(data, &apiObject)
 			require.NoError(err)
 
-			launchDigest, err := LaunchDigestFromMetadataWrapper(apiObject, 0x1, tc.vcpuCount, vmmtypes.EC2, "")
+			launchDigest, err := LaunchDigestFromMetadataWrapper(apiObject, 0x1, tc.vcpuCount, tc.vmmType, "")
 			if tc.wantErr {
 				assert.Error(err)
 			} else {
