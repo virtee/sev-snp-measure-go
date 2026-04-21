@@ -38,6 +38,14 @@ const (
 	OVMF_SEV_META_DATA_GUID = "dc886566-984a-4798-a75e-5585a7bf67cc"
 )
 
+func GuidFromStr(s string) ([16]byte, error) {
+	u, err := uuid.Parse(s)
+	if err != nil {
+		return [16]byte{}, err
+	}
+	return LittleEndianBytes([16]byte(u)), nil
+}
+
 type FooterTableEntry struct {
 	Size uint16
 	Guid [16]byte
@@ -175,9 +183,10 @@ type OVMF struct {
 // MetadataWrapper replaces the OVMF binary when using an OVMF hash.
 // It contains the metadata items and the reset EIP that have been parsed from the binary before.
 type MetadataWrapper struct {
-	MetadataItems []MetadataSection
-	ResetEIP      uint32
-	OVMFHash      []byte
+	MetadataItems     []MetadataSection
+	ResetEIP          uint32
+	OVMFHash          []byte
+	SevHashesTableGPA uint32
 }
 
 func NewMetadataWrapper(ovmf OVMF, ovmfHash []byte) (*MetadataWrapper, error) {
@@ -186,19 +195,27 @@ func NewMetadataWrapper(ovmf OVMF, ovmfHash []byte) (*MetadataWrapper, error) {
 		return nil, fmt.Errorf("getting reset EIP: %w", err)
 	}
 
+	hashTableGPA, err := ovmf.SevHashesTableGPA()
+	if err != nil {
+		// Non-fatal: older OVMF may not have this
+		hashTableGPA = 0
+	}
+
 	return &MetadataWrapper{
-		MetadataItems: ovmf.MetadataItems(),
-		ResetEIP:      resetEIP,
-		OVMFHash:      ovmfHash,
+		MetadataItems:     ovmf.MetadataItems(),
+		ResetEIP:          resetEIP,
+		OVMFHash:          ovmfHash,
+		SevHashesTableGPA: hashTableGPA,
 	}, nil
 }
 
 // MarshalJSON is a custom marshaller for MetadataSection. It converts the GPA and Size to hex strings.
 func (m *MetadataWrapper) MarshalJSON() ([]byte, error) {
 	return json.Marshal(map[string]interface{}{
-		"MetadataItems": m.MetadataItems,
-		"ResetEIP":      fmt.Sprintf("0x%x", m.ResetEIP),
-		"OVMFHash":      hex.EncodeToString(m.OVMFHash),
+		"MetadataItems":     m.MetadataItems,
+		"ResetEIP":          fmt.Sprintf("0x%x", m.ResetEIP),
+		"OVMFHash":          hex.EncodeToString(m.OVMFHash),
+		"SevHashesTableGPA": fmt.Sprintf("0x%x", m.SevHashesTableGPA),
 	})
 }
 
@@ -254,6 +271,24 @@ func (m *MetadataWrapper) UnmarshalJSON(data []byte) error {
 	}
 
 	m.ResetEIP = uint32(eipInt)
+	m.SevHashesTableGPA = 0
+
+	// SevHashesTableGPA is optional for backward compatibility
+	if sevHashesGPARaw, ok := tmp["SevHashesTableGPA"]; ok {
+		var sevHashesGPAStr string
+		if err := json.Unmarshal(sevHashesGPARaw, &sevHashesGPAStr); err != nil {
+			return err
+		}
+		sevHashesGPAStr, found = strings.CutPrefix(sevHashesGPAStr, "0x")
+		if !found {
+			return errors.New("missing 0x prefix from SevHashesTableGPA")
+		}
+		sevHashesGPAInt, err := strconv.ParseInt(sevHashesGPAStr, 16, 0)
+		if err != nil {
+			return fmt.Errorf("parsing SevHashesTableGPA: %w", err)
+		}
+		m.SevHashesTableGPA = uint32(sevHashesGPAInt)
+	}
 
 	return nil
 }
@@ -339,6 +374,17 @@ func (o *OVMF) SevESResetEIP() (uint32, error) {
 	return binary.LittleEndian.Uint32(item[:4]), nil
 }
 
+func (o *OVMF) SevHashesTableGPA() (uint32, error) {
+	item, err := o.TableItem(SEV_HASH_TABLE_RV_GUID)
+	if err != nil {
+		return 0, err
+	}
+	if len(item) < 4 {
+		return 0, fmt.Errorf("invalid SEV_HASH_TABLE_RV_GUID item size %d, expected 4", len(item))
+	}
+	return binary.LittleEndian.Uint32(item[:4]), nil
+}
+
 func (o *OVMF) parseFooterTable() error {
 	o.table = make(map[string][]byte)
 	size := len(o.data)
@@ -352,12 +398,10 @@ func (o *OVMF) parseFooterTable() error {
 		return fmt.Errorf("parsing FooterTableEntry: %w", err)
 	}
 
-	expectedFooterGUID, err := uuid.Parse(OVMF_TABLE_FOOTER_GUID)
+	guidBytesLE, err := GuidFromStr(OVMF_TABLE_FOOTER_GUID)
 	if err != nil {
 		return err
 	}
-
-	guidBytesLE := LittleEndianBytes(expectedFooterGUID)
 
 	if !bytes.Equal(footer.Guid[:], guidBytesLE[:]) {
 		return fmt.Errorf("invalid footer GUID <%x> expected <%x>", footer.Guid, guidBytesLE)

@@ -66,7 +66,7 @@ func TestCompatibility(t *testing.T) {
 		ovmfHash, err := guest.OVMFHash(ovmfObj)
 		require.NoError(err, "calculating OVMF hash: %s", err)
 
-		digest, err := guest.LaunchDigestFromOVMF(ovmfObj, guestFeatures, entry.vcpus, ovmfHash, vmmType, "")
+		digest, err := guest.LaunchDigestFromOVMF(ovmfObj, guestFeatures, entry.vcpus, ovmfHash, vmmType, "", nil, nil, "")
 		require.NoError(err, "calculating launch digest: %s", err)
 
 		assert.True(bytes.Equal(digest, entry.measurement), "expected hash %x, got %x", entry.measurement, digest)
