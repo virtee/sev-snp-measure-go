@@ -167,7 +167,7 @@ func BuildSaveArea(eip uint32, guestFeatures uint64, vcpuSig uint64, vmmType vmm
 		}
 		ssFlags = 0x92
 		trFlags = 0x83
-		rdx = 0
+		rdx = 0x600
 		mxcsr = 0
 		fcw = 0
 	case vmmtypes.GCE:
